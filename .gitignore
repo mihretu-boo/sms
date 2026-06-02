@@ -1,0 +1,38 @@
+# Uploaded user files
+uploads/students/*
+uploads/staff/*
+uploads/avatars/*
+uploads/assignments/*
+uploads/submissions/*
+uploads/materials/*
+!uploads/students/.gitkeep
+!uploads/staff/.gitkeep
+!uploads/avatars/.gitkeep
+!uploads/assignments/.gitkeep
+!uploads/submissions/.gitkeep
+!uploads/materials/.gitkeep
+
+# Database backups
+backups/
+
+# Logs
+*.log
+error_log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# PHP cache
+*.cache
+
+# Environment / secrets (if added later)
+.env
+.env.local

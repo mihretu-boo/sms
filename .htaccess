@@ -1,0 +1,11 @@
+Options -Indexes
+RewriteEngine On
+
+# Don't rewrite for assets or direct file access
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/studentmanagement/assets/
+RewriteCond %{REQUEST_URI} !^/studentmanagement/uploads/
+
+# Route all requests through index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
