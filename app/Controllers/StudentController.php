@@ -333,7 +333,38 @@ class StudentController extends Controller {
 
     public function transfers(): void {
         $this->requireAuth(['super_admin','principal','registrar']);
-        $db   = getDB();
+        $db = getDB();
+
+        // Handle POST (record new transfer)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->validateCsrf();
+            $data = [
+                'student_id'    => $this->post('student_id', ''),
+                'transfer_type' => $this->post('transfer_type', 'out'),
+                'from_school'   => $this->post('from_school', ''),
+                'to_school'     => $this->post('to_school', ''),
+                'transfer_date' => $this->post('transfer_date', date('Y-m-d')),
+                'reason'        => $this->post('reason', ''),
+                'certificate_no'=> $this->post('certificate_no', ''),
+                'approved_by'   => Auth::id(),
+                'status'        => 'approved',
+            ];
+            try {
+                $cols = implode(',', array_keys($data));
+                $ph   = implode(',', array_fill(0, count($data), '?'));
+                $db->prepare("INSERT INTO transfers ($cols) VALUES ($ph)")->execute(array_values($data));
+                // Update student status for transfer-out
+                if ($data['transfer_type'] === 'out' && $data['student_id']) {
+                    $db->prepare("UPDATE students SET status='transferred' WHERE id=?")->execute([$data['student_id']]);
+                }
+                Flash::set('success', 'Transfer recorded successfully.');
+            } catch (\Exception $e) {
+                Flash::set('error', 'Failed: ' . $e->getMessage());
+            }
+            $this->redirect('students/transfers');
+            return;
+        }
+
         $stmt = $db->query("SELECT t.*, s.first_name, s.last_name, s.student_id FROM transfers t JOIN students s ON t.student_id = s.id ORDER BY t.created_at DESC");
 
         $this->render('students/transfers', [

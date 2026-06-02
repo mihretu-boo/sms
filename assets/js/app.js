@@ -46,19 +46,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
   // ===== DataTables Auto-Init =====
-  var tables = document.querySelectorAll('table[id$="Table"]');
+  var tables = document.querySelectorAll('table[id$="Table"]:not([data-no-dt])');
   tables.forEach(function (t) {
     if (!$.fn.DataTable.isDataTable('#' + t.id)) {
-      $('#' + t.id).DataTable({
-        responsive: true,
-        pageLength: 25,
-        language: {
-          search: '',
-          searchPlaceholder: 'Quick search...',
-          lengthMenu: 'Show _MENU_ entries',
-        },
-        dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rt<"d-flex justify-content-between align-items-center mt-3"ip>',
+      // Count actual header columns
+      var headerCols = t.querySelectorAll('thead tr:first-child th, thead tr:first-child td').length;
+      // Ensure every tbody row has the exact same cell count (fix colspan empty rows)
+      t.querySelectorAll('tbody tr').forEach(function (row) {
+        var cells = row.querySelectorAll('td, th');
+        if (cells.length === 1 && cells[0].colSpan > 1) {
+          // Replace colspan cell with proper cells
+          var msg = cells[0].innerHTML;
+          cells[0].removeAttribute('colspan');
+          cells[0].style.display = '';
+          for (var i = 1; i < headerCols; i++) {
+            var td = document.createElement('td');
+            row.appendChild(td);
+          }
+        }
       });
+
+      try {
+        $('#' + t.id).DataTable({
+          responsive: false,
+          pageLength: 25,
+          language: {
+            search: '',
+            searchPlaceholder: 'Quick search...',
+            lengthMenu: 'Show _MENU_ entries',
+            emptyTable: 'No data available',
+          },
+          columnDefs: [{ targets: '_all', defaultContent: '' }],
+          dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rt<"d-flex justify-content-between align-items-center mt-3"ip>',
+        });
+      } catch (e) {
+        console.warn('DataTables init failed for #' + t.id, e);
+      }
     }
   });
 

@@ -16,7 +16,8 @@
       "Bash(git init *)",
       "Bash(git config *)",
       "Bash(git remote *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git push *)"
     ]
   }
 }

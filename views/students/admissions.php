@@ -35,7 +35,7 @@
         </thead>
         <tbody>
           <?php if (empty($students)): ?>
-          <tr><td colspan="8" class="text-center py-5 text-muted">No admissions for <?= $year ?></td></tr>
+          <tr><td></td><td class="text-center py-4 text-muted" style="white-space:nowrap">No admissions for <?= $year ?></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
           <?php else: $n=1; foreach ($students as $s): ?>
           <tr>
             <td><?= $n++ ?></td>

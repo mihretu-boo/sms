@@ -109,7 +109,27 @@ class InventoryController extends Controller {
 
     public function categories(): void {
         $this->requireAuth(['super_admin','principal']);
-        $db   = getDB();
+        $db = getDB();
+
+        // Handle POST (add category)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->validateCsrf();
+            $data = [
+                'name'        => $this->post('name', ''),
+                'description' => $this->post('description', ''),
+            ];
+            if (!empty($data['name'])) {
+                try {
+                    $db->prepare("INSERT INTO inventory_categories (name, description) VALUES (?,?)")->execute(array_values($data));
+                    Flash::set('success', 'Category added.');
+                } catch (\Exception $e) {
+                    Flash::set('error', 'Failed: ' . $e->getMessage());
+                }
+            }
+            $this->redirect('inventory/categories');
+            return;
+        }
+
         $stmt = $db->query("SELECT ic.*, COUNT(ii.id) as item_count FROM inventory_categories ic LEFT JOIN inventory_items ii ON ii.category_id=ic.id GROUP BY ic.id ORDER BY ic.name");
         $this->render('inventory/categories', ['title' => 'Inventory Categories', 'categories' => $stmt->fetchAll()]);
     }

@@ -34,6 +34,7 @@ class Router {
         $this->add('GET',  'students/promotions', 'StudentController', 'promotions');
         $this->add('POST', 'students/promote',    'StudentController', 'promote');
         $this->add('GET',  'students/transfers',  'StudentController', 'transfers');
+        $this->add('POST', 'students/transfers',  'StudentController', 'transfers');
         $this->add('GET',  'students/id-card/{id}','StudentController','idCard');
 
         // Staff
@@ -154,6 +155,7 @@ class Router {
         $this->add('POST', 'inventory/edit/{id}', 'InventoryController', 'update');
         $this->add('POST', 'inventory/delete/{id}','InventoryController','delete');
         $this->add('GET',  'inventory/categories','InventoryController', 'categories');
+        $this->add('POST', 'inventory/categories','InventoryController', 'categories');
 
         // Hostel
         $this->add('GET',  'hostel',              'HostelController', 'index');
