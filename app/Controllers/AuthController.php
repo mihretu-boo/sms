@@ -130,7 +130,7 @@ class AuthController extends Controller {
                 $html = Mailer::renderTemplate('reset-password', [
                     'schoolName'    => getSetting('school_name', 'Shalaka Jatan Ali Secondary School'),
                     'schoolAddress' => getSetting('school_address', 'Yabelo, Borana Zone, Oromia, Ethiopia'),
-                    'adminEmail'    => getSetting('school_email', 'admin@sjassms.edu.et'),
+                    'adminEmail'    => getSetting('school_email', 'mihretu.yangu@bru.edu.et'),
                     'username'      => $user['username'],
                     'email'         => $user['email'],
                     'resetUrl'      => $resetUrl,
@@ -283,7 +283,7 @@ class AuthController extends Controller {
                 $html = Mailer::renderTemplate('password-changed', [
                     'schoolName'    => getSetting('school_name', 'Shalaka Jatan Ali Secondary School'),
                     'schoolAddress' => getSetting('school_address', 'Yabelo, Borana Zone, Oromia, Ethiopia'),
-                    'adminEmail'    => getSetting('school_email', 'admin@sjassms.edu.et'),
+                    'adminEmail'    => getSetting('school_email', 'mihretu.yangu@bru.edu.et'),
                     'username'      => $reset['username'],
                     'email'         => $reset['email'],
                     'changedAt'     => $changedAt,

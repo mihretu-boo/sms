@@ -28,10 +28,14 @@ class Mailer {
         $this->encryption = $config['encryption'] ?? getSetting('smtp_encryption',  'tls');
         $this->username   = $config['username']   ?? getSetting('smtp_user',        '');
         $this->password   = $config['password']   ?? getSetting('smtp_pass',        '');
-        $this->fromEmail  = $config['from_email'] ?? getSetting('smtp_from_email',  getSetting('smtp_user', ''));
-        $this->fromName   = $config['from_name']  ?? getSetting('smtp_from_name',   getSetting('school_name', 'SJASSMS'));
+        // fromEmail: prefer explicit smtp_from_email, fall back to smtp_user, then school_email
+        $fromEmail        = getSetting('smtp_from_email', '');
+        if (empty($fromEmail)) $fromEmail = getSetting('smtp_user', '');
+        if (empty($fromEmail)) $fromEmail = getSetting('school_email', '');
+        $this->fromEmail  = $config['from_email'] ?? $fromEmail;
+        $this->fromName   = $config['from_name']  ?? getSetting('smtp_from_name', getSetting('school_name', 'SJASSMS'));
         $this->auth       = (bool)($config['auth'] ?? getSetting('smtp_auth', '1'));
-        $this->timeout    = (int)($config['timeout'] ?? getSetting('smtp_timeout',  '30'));
+        $this->timeout    = (int)($config['timeout'] ?? getSetting('smtp_timeout', '30'));
         $this->debug      = (bool)($config['debug'] ?? false);
     }
 
@@ -48,9 +52,11 @@ class Mailer {
         string $plainBody = '',
         array  $replyTo   = []
     ): bool {
-        if (empty($this->username) || empty($this->password)) {
-            // SMTP not configured — log the email and return true (dev mode)
-            $this->logFallback($to, $subject, $htmlBody);
+        if (empty($this->password)) {
+            // SMTP password not set — log the email to file and return true (dev mode)
+            // Admin must set smtp_pass in Settings → Email & SMTP
+            $this->logFallback($to, $subject, $htmlBody,
+                'SMTP password not set. Go to Settings → Email & SMTP to enter the password for ' . $this->username);
             return true;
         }
 

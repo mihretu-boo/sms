@@ -56,6 +56,47 @@
       <?php endif; ?>
     </div>
     <div class="card-body">
+
+      <?php if ($group === 'email'):
+        $smtpUser = getSetting('smtp_user','');
+        $smtpPass = getSetting('smtp_pass','');
+        $smtpHost = getSetting('smtp_host','');
+      ?>
+      <?php if (!empty($smtpUser) && empty($smtpPass)): ?>
+      <!-- Action Required: SMTP Password Missing -->
+      <div class="alert alert-warning border-start border-4 border-warning mb-4">
+        <div class="d-flex align-items-start gap-3">
+          <i class="fas fa-exclamation-triangle fa-2x text-warning mt-1"></i>
+          <div>
+            <div class="fw-bold">Action Required: SMTP Password Not Set</div>
+            <div class="small mt-1">
+              Email sending is configured for <strong><?= e($smtpUser) ?></strong> but the password is missing.
+              Emails are currently being saved to <code>storage/email-logs/</code> instead of being sent.
+            </div>
+            <div class="mt-2 small">
+              <strong>To fix:</strong> Enter your email password in the <em>smtp_pass</em> field below,
+              then click <strong>Save All Settings</strong>.
+            </div>
+            <?php if (strpos($smtpHost, 'gmail') !== false): ?>
+            <div class="mt-2 small text-muted">
+              <i class="fas fa-info-circle me-1"></i>
+              If <code><?= e($smtpUser) ?></code> is a Gmail / Google Workspace account,
+              you need a <strong>16-character App Password</strong> (not your regular password).
+              <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-primary">Get App Password →</a>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <?php elseif (!empty($smtpUser) && !empty($smtpPass)): ?>
+      <div class="alert alert-success border-start border-4 border-success mb-4 py-2 small">
+        <i class="fas fa-check-circle text-success me-2"></i>
+        SMTP configured for <strong><?= e($smtpUser) ?></strong>.
+        Use <strong>"Test Connection"</strong> above to verify, then <strong>"Send Test Email"</strong> to confirm delivery.
+      </div>
+      <?php endif; ?>
+      <?php endif; ?>
+
       <div class="row g-3">
         <?php foreach ($settings as $s):
           $isPassword = str_contains($s['setting_key'], 'pass') || str_contains($s['setting_key'], '_secret');
@@ -102,25 +143,37 @@
       <?php if ($group === 'email'): ?>
       <!-- SMTP Help Box -->
       <div class="alert alert-light border mt-4 small">
-        <p class="fw-semibold mb-2"><i class="fas fa-question-circle text-info me-1"></i>SMTP Configuration Guide:</p>
+        <p class="fw-semibold mb-2"><i class="fas fa-question-circle text-info me-1"></i>SMTP Configuration Guide for <code>mihretu.yangu@bru.edu.et</code>:</p>
         <div class="row g-3">
-          <div class="col-md-4">
-            <strong>Gmail:</strong><br>
+          <div class="col-md-6">
+            <div class="p-2 bg-white rounded border">
+              <strong class="text-primary">🏫 BRU / Google Workspace (@bru.edu.et):</strong><br>
+              Host: <code>smtp.gmail.com</code><br>
+              Port: <code>587</code> | Encryption: <code>TLS</code><br>
+              Username: <code>mihretu.yangu@bru.edu.et</code><br>
+              Password: <strong>Your BRU email password</strong><br>
+              <span class="text-danger">⚠ If 2-Step Verification is enabled, you need a
+                <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-primary fw-semibold">16-char App Password</a>
+                instead of your regular password.
+              </span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <strong>Gmail (personal):</strong><br>
             Host: <code>smtp.gmail.com</code><br>
             Port: <code>587</code> (TLS)<br>
-            Use <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Password</a> (not regular password)
+            <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password required</a>
           </div>
-          <div class="col-md-4">
-            <strong>Outlook/Hotmail:</strong><br>
-            Host: <code>smtp-mail.outlook.com</code><br>
+          <div class="col-md-3">
+            <strong>Outlook / Office 365:</strong><br>
+            Host: <code>smtp.office365.com</code><br>
             Port: <code>587</code> (TLS)<br>
-            Use your Outlook email + password
+            Your O365 email + password
           </div>
-          <div class="col-md-4">
-            <strong>Institutional SMTP:</strong><br>
-            Contact your IT department for:<br>
-            SMTP host, port, credentials
-          </div>
+        </div>
+        <div class="mt-2 text-muted">
+          <i class="fas fa-lightbulb text-warning me-1"></i>
+          After entering the password, click <strong>Save All Settings</strong> then use the <strong>Test Connection</strong> button to verify.
         </div>
       </div>
 
@@ -133,7 +186,7 @@
             <label class="form-label small fw-semibold">Test Email Address</label>
             <input type="email" name="test_email" class="form-control form-control-sm"
                    placeholder="recipient@example.com" required
-                   value="<?= e(Auth::user()['email'] ?? '') ?>">
+                   value="<?= e(Auth::user()['email'] ?? getSetting('school_email','mihretu.yangu@bru.edu.et')) ?>">
           </div>
           <div class="col-auto">
             <button type="submit" class="btn btn-sm btn-info text-white">
