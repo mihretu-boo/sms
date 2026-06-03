@@ -1,6 +1,8 @@
 <?php
 
 require_once ROOT . '/app/Core/Controller.php';
+require_once ROOT . '/app/Core/Mailer.php';
+require_once ROOT . '/app/Core/MailerProviders.php';
 
 class SettingsController extends Controller {
 
@@ -235,12 +237,40 @@ class SettingsController extends Controller {
         $this->redirect('settings/backup');
     }
 
+    // ===== EMAIL PROVIDER SWITCHER =====
+
+    public function switchEmailProvider(): void {
+        $this->requireAuth(['super_admin']);
+        $this->validateCsrf();
+
+        $provider = $this->post('provider', 'custom');
+        $valid    = array_keys(MailerProviders::PRESETS);
+
+        if (!in_array($provider, $valid)) {
+            $this->json(['success' => false, 'message' => 'Unknown provider.']);
+            return;
+        }
+
+        try {
+            $db = getDB();
+            MailerProviders::applyPreset($db, $provider);
+            Auth::audit('switch_email_provider', 'settings', null, "Switched to: $provider");
+
+            $preset = MailerProviders::get($provider);
+            $this->json([
+                'success'  => true,
+                'message'  => "Provider switched to <strong>{$preset['label']}</strong>. SMTP host and port updated.",
+                'provider' => $preset,
+            ]);
+        } catch (\Exception $e) {
+            $this->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     // ===== SMTP TEST =====
 
     public function smtpTest(): void {
         $this->requireAuth(['super_admin']);
-        require_once ROOT . '/app/Core/Mailer.php';
-
         $result = Mailer::test();
         $this->json($result);
     }
@@ -248,7 +278,6 @@ class SettingsController extends Controller {
     public function sendTestEmail(): void {
         $this->requireAuth(['super_admin']);
         $this->validateCsrf();
-        require_once ROOT . '/app/Core/Mailer.php';
 
         $to = $this->post('test_email', '');
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
@@ -259,18 +288,26 @@ class SettingsController extends Controller {
 
         try {
             $mailer  = new Mailer();
-            $subject = 'SMTP Test — ' . getSetting('school_name', 'SJASSMS');
-            $html    = '<h2>✅ SMTP Test Successful!</h2>
-                        <p>This is a test email from the <strong>' . e(getSetting('school_name', 'SJASSMS')) . '</strong> Management System.</p>
-                        <p>If you received this email, your SMTP configuration is working correctly.</p>
-                        <p><strong>Server:</strong> ' . e(getSetting('smtp_host')) . ':' . e(getSetting('smtp_port')) . '<br>
-                        <strong>Sent at:</strong> ' . date('d M Y H:i:s') . '</p>';
+            $provider = getSetting('smtp_provider', 'custom');
+            $preset   = MailerProviders::get($provider);
+            $subject  = 'SMTP Test — ' . getSetting('school_name', 'SJASSMS');
+            $html     = '<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
+                          <h2 style="color:#2E7D32">✅ SMTP Test Successful!</h2>
+                          <p>This is a test email from the <strong>' . e(getSetting('school_name','SJASSMS')) . '</strong> Management System.</p>
+                          <table style="border-collapse:collapse;width:100%;font-size:13px">
+                            <tr><td style="padding:6px;color:#666">Provider</td><td style="padding:6px"><strong>' . e($preset['label']) . '</strong></td></tr>
+                            <tr><td style="padding:6px;color:#666">SMTP Server</td><td style="padding:6px"><code>' . e(getSetting('smtp_host')) . ':' . e(getSetting('smtp_port')) . '</code></td></tr>
+                            <tr><td style="padding:6px;color:#666">From</td><td style="padding:6px">' . e(getSetting('smtp_from_email', getSetting('smtp_user',''))) . '</td></tr>
+                            <tr><td style="padding:6px;color:#666">Sent at</td><td style="padding:6px">' . date('d M Y H:i:s T') . '</td></tr>
+                          </table>
+                          <p style="color:#888;font-size:12px;margin-top:16px">Email system is working correctly.</p>
+                        </div>';
 
             $mailer->send($to, $subject, $html);
-            Auth::audit('smtp_test', 'settings', null, "Test email sent to: $to");
-            Flash::set('success', "Test email sent to <strong>$to</strong>. Please check the inbox.");
+            Auth::audit('smtp_test_email', 'settings', null, "Test email sent to: $to via {$preset['label']}");
+            Flash::set('success', "✅ Test email sent to <strong>$to</strong> via <strong>{$preset['label']}</strong>. Check your inbox (and spam folder).");
         } catch (\Exception $e) {
-            Flash::set('error', 'Failed to send test email: ' . $e->getMessage());
+            Flash::set('error', '❌ Failed: ' . $e->getMessage());
         }
 
         $this->redirect('settings?tab=email');

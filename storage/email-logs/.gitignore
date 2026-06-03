@@ -1,0 +1,5 @@
+# Ignore all email log files (private fallback emails)
+*.html
+*.txt
+!.gitkeep
+!.gitignore

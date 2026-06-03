@@ -223,9 +223,10 @@ class Router {
         $this->add('POST', 'exam-repository/question-bank/delete/{id}','ExamRepositoryController','deleteQuestion');
         $this->add('GET',  'exam-repository/reports',               'ExamRepositoryController', 'reports');
 
-        // Settings SMTP test
-        $this->add('POST', 'settings/smtp-test',   'SettingsController', 'smtpTest');
-        $this->add('POST', 'settings/send-test-email','SettingsController','sendTestEmail');
+        // Settings — Email & SMTP
+        $this->add('POST', 'settings/smtp-test',          'SettingsController', 'smtpTest');
+        $this->add('POST', 'settings/send-test-email',    'SettingsController', 'sendTestEmail');
+        $this->add('POST', 'settings/switch-email-provider','SettingsController','switchEmailProvider');
 
         // API endpoints
         $this->add('GET',  'api/students',         'ApiController', 'students');

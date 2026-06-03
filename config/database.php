@@ -1,6 +1,6 @@
 <?php
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'database/ethiopian_curriculum_migration.sql');
+define('DB_NAME', 'ethiopian_curriculum_migration');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
