@@ -12,7 +12,7 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $host   = trim($_POST['db_host'] ?? 'localhost');
-    $name   = trim($_POST['db_name'] ?? 'sjassms');
+    $name   = 'sjassms';   // ← always 'sjassms' — never change this
     $user   = trim($_POST['db_user'] ?? 'root');
     $pass   = $_POST['db_pass'] ?? '';
 
@@ -166,34 +166,44 @@ body { background: linear-gradient(135deg, #1565C0, #2E7D32); min-height: 100vh;
         </a>
       </div>
       <?php else: ?>
-      <h6 class="fw-bold mb-3"><i class="fas fa-database text-primary me-2"></i>Database Configuration</h6>
+      <h6 class="fw-bold mb-3"><i class="fas fa-database text-primary me-2"></i>MySQL Connection Settings</h6>
+
+      <!-- Database name locked notice -->
+      <div class="alert alert-success border-start border-4 border-success py-2 mb-3 small">
+        <i class="fas fa-lock me-1"></i>
+        <strong>Database name is fixed:</strong> <code>sjassms</code><br>
+        <span class="text-muted">The system always uses the database named <code>sjassms</code>. Do not change this.</span>
+      </div>
+
       <form method="POST">
         <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Database Host</label>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Host</label>
             <input type="text" name="db_host" class="form-control" value="localhost" required>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Database Name</label>
-            <input type="text" name="db_name" class="form-control" value="sjassms" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Username</label>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">MySQL Username</label>
             <input type="text" name="db_user" class="form-control" value="root" required>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Password</label>
-            <input type="password" name="db_pass" class="form-control" placeholder="Leave blank for XAMPP default">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">MySQL Password</label>
+            <input type="password" name="db_pass" class="form-control" placeholder="blank = XAMPP default">
           </div>
+        </div>
+
+        <!-- Fixed DB name display -->
+        <div class="mt-3 p-3 bg-light rounded border d-flex justify-content-between align-items-center small">
+          <span class="text-muted">Database that will be created / used:</span>
+          <strong class="text-primary font-monospace fs-6">sjassms</strong>
         </div>
 
         <div class="alert alert-info mt-3 small">
           <i class="fas fa-info-circle me-1"></i>
-          <strong>XAMPP Default:</strong> Host=localhost, User=root, Password=(empty).<br>
-          This will create the <code>sjassms</code> database and all tables with sample data.
+          <strong>XAMPP default:</strong> Host = <code>localhost</code>, User = <code>root</code>, Password = <em>(empty)</em>.<br>
+          The installer will create the <code>sjassms</code> database, run the full schema, and update <code>config/database.php</code>.
         </div>
 
-        <button type="submit" name="step" value="2" class="btn btn-primary w-100 mt-2">
+        <button type="submit" name="step" value="2" class="btn btn-primary w-100 mt-2 py-2">
           <i class="fas fa-play me-2"></i>Install Database
         </button>
       </form>
