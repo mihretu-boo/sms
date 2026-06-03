@@ -14,10 +14,12 @@ class Router {
         $this->add('GET',  'login',               'AuthController', 'showLogin');
         $this->add('POST', 'login',               'AuthController', 'login');
         $this->add('GET',  'logout',              'AuthController', 'logout');
-        $this->add('GET',  'forgot-password',     'AuthController', 'forgotPassword');
-        $this->add('POST', 'forgot-password',     'AuthController', 'processForgotPassword');
-        $this->add('GET',  'reset-password',      'AuthController', 'resetPassword');
-        $this->add('POST', 'reset-password',      'AuthController', 'processReset');
+        $this->add('GET',  'forgot-password',          'AuthController', 'forgotPassword');
+        $this->add('POST', 'forgot-password',          'AuthController', 'processForgotPassword');
+        $this->add('GET',  'forgot-password/sent',     'AuthController', 'forgotPasswordSent');
+        $this->add('GET',  'reset-password',           'AuthController', 'resetPassword');
+        $this->add('POST', 'reset-password',           'AuthController', 'processReset');
+        $this->add('GET',  'reset-password/success',   'AuthController', 'resetPasswordSuccess');
 
         // Dashboard
         $this->add('GET',  'dashboard',           'DashboardController', 'index');
@@ -219,6 +221,10 @@ class Router {
         $this->add('POST', 'exam-repository/question-bank',         'ExamRepositoryController', 'storeQuestion');
         $this->add('POST', 'exam-repository/question-bank/delete/{id}','ExamRepositoryController','deleteQuestion');
         $this->add('GET',  'exam-repository/reports',               'ExamRepositoryController', 'reports');
+
+        // Settings SMTP test
+        $this->add('POST', 'settings/smtp-test',   'SettingsController', 'smtpTest');
+        $this->add('POST', 'settings/send-test-email','SettingsController','sendTestEmail');
 
         // API endpoints
         $this->add('GET',  'api/students',         'ApiController', 'students');

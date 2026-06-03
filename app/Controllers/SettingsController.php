@@ -234,4 +234,45 @@ class SettingsController extends Controller {
         }
         $this->redirect('settings/backup');
     }
+
+    // ===== SMTP TEST =====
+
+    public function smtpTest(): void {
+        $this->requireAuth(['super_admin']);
+        require_once ROOT . '/app/Core/Mailer.php';
+
+        $result = Mailer::test();
+        $this->json($result);
+    }
+
+    public function sendTestEmail(): void {
+        $this->requireAuth(['super_admin']);
+        $this->validateCsrf();
+        require_once ROOT . '/app/Core/Mailer.php';
+
+        $to = $this->post('test_email', '');
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            Flash::set('error', 'Please enter a valid test email address.');
+            $this->redirect('settings?tab=email');
+            return;
+        }
+
+        try {
+            $mailer  = new Mailer();
+            $subject = 'SMTP Test — ' . getSetting('school_name', 'SJASSMS');
+            $html    = '<h2>✅ SMTP Test Successful!</h2>
+                        <p>This is a test email from the <strong>' . e(getSetting('school_name', 'SJASSMS')) . '</strong> Management System.</p>
+                        <p>If you received this email, your SMTP configuration is working correctly.</p>
+                        <p><strong>Server:</strong> ' . e(getSetting('smtp_host')) . ':' . e(getSetting('smtp_port')) . '<br>
+                        <strong>Sent at:</strong> ' . date('d M Y H:i:s') . '</p>';
+
+            $mailer->send($to, $subject, $html);
+            Auth::audit('smtp_test', 'settings', null, "Test email sent to: $to");
+            Flash::set('success', "Test email sent to <strong>$to</strong>. Please check the inbox.");
+        } catch (\Exception $e) {
+            Flash::set('error', 'Failed to send test email: ' . $e->getMessage());
+        }
+
+        $this->redirect('settings?tab=email');
+    }
 }
