@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->exec("USE `$name`");
         $messages[] = ['type'=>'success', 'text'=>"✓ Database '$name' created/selected"];
 
-        // Run SQL schema
-        $sqlFile = __DIR__ . '/database/sjassms.sql';
+        // Run SQL schema (use final merged database)
+        $sqlFile = __DIR__ . '/database/sjassms_final.sql';
         if (file_exists($sqlFile)) {
             $sql = file_get_contents($sqlFile);
             // Remove USE statement since we already selected
