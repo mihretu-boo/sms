@@ -197,7 +197,7 @@ class StudentController extends Controller {
         $fees = $db->prepare("SELECT sf.*, fc.name as fee_name FROM student_fees sf JOIN fee_categories fc ON sf.fee_category_id = fc.id WHERE sf.student_id = ? ORDER BY sf.created_at DESC");
         $fees->execute([$student['id']]);
 
-        $discipline = $db->prepare("SELECT di.*, u.username as reported_by_name FROM discipline_incidents di JOIN users u ON di.reported_by = u.id WHERE di.student_id = ? ORDER BY di.incident_date DESC LIMIT 10");
+        $discipline = $db->prepare("SELECT di.*, u.username as reported_by_name FROM discipline_incidents di LEFT JOIN users u ON di.reported_by = u.id WHERE di.student_id = ? ORDER BY di.incident_date DESC LIMIT 10");
         $discipline->execute([$student['id']]);
 
         $timetable = $db->prepare("SELECT tt.*, s.name as subject_name, st.first_name, st.last_name FROM timetable tt JOIN subjects s ON tt.subject_id = s.id JOIN staff st ON tt.teacher_id = st.id WHERE tt.class_id = ? AND tt.semester_id = ? ORDER BY FIELD(tt.day,'Monday','Tuesday','Wednesday','Thursday','Friday'), tt.period");

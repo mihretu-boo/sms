@@ -196,8 +196,8 @@
               <option value="social">🌍 Social Science</option>
             </select>
             <div class="form-text small">
-              <strong>Natural Science:</strong> Afaan Oromo, English, Math, Physics, Chemistry, Biology, Agriculture, IT<br>
-              <strong>Social Science:</strong> Afaan Oromo, English, Math, Geography, History, Economics, Citizenship Ed, IT
+              <strong>Natural Science (8 subjects):</strong> Afaan Oromo · English · Math · Physics · Chemistry · Biology · Agriculture · IT<br>
+              <strong>Social Science (7 subjects):</strong> Afaan Oromo · English · Math · Geography · History · Economics · IT
             </div>
           </div>
 

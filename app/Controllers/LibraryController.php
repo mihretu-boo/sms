@@ -12,7 +12,7 @@ class LibraryController extends Controller {
         $available     = $db->query("SELECT SUM(copies_available) FROM books")->fetchColumn();
         $borrowed      = $db->query("SELECT COUNT(*) FROM book_borrowings WHERE status='borrowed'")->fetchColumn();
         $overdue       = $db->query("SELECT COUNT(*) FROM book_borrowings WHERE status='borrowed' AND due_date < CURDATE()")->fetchColumn();
-        $recentBorrows = $db->query("SELECT bb.*, b.title, u.username FROM book_borrowings bb JOIN books b ON bb.book_id=b.id JOIN users u ON bb.user_id=u.id ORDER BY bb.created_at DESC LIMIT 10")->fetchAll();
+        $recentBorrows = $db->query("SELECT bb.*, b.title, u.username FROM book_borrowings bb LEFT JOIN books b ON bb.book_id=b.id LEFT JOIN users u ON bb.user_id=u.id ORDER BY bb.created_at DESC LIMIT 10")->fetchAll();
 
         $this->render('library/index', [
             'title'         => 'Library',
@@ -164,7 +164,7 @@ class LibraryController extends Controller {
         }
 
         $whereStr = implode(' AND ', $where);
-        $stmt = $db->prepare("SELECT bb.*, b.title, b.author, u.username, DATEDIFF(CURDATE(), bb.due_date) as days_overdue FROM book_borrowings bb JOIN books b ON bb.book_id=b.id JOIN users u ON bb.user_id=u.id WHERE $whereStr ORDER BY bb.created_at DESC");
+        $stmt = $db->prepare("SELECT bb.*, b.title, b.author, u.username, DATEDIFF(CURDATE(), bb.due_date) as days_overdue FROM book_borrowings bb LEFT JOIN books b ON bb.book_id=b.id LEFT JOIN users u ON bb.user_id=u.id WHERE $whereStr ORDER BY bb.created_at DESC");
         $stmt->execute($params);
 
         $books = $db->query("SELECT id, title, author, copies_available FROM books WHERE copies_available > 0 ORDER BY title")->fetchAll();

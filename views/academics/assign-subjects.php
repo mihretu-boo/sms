@@ -42,7 +42,7 @@ $streamInfo = match($classStream) {
     'natural' => ['label'=>'Natural Science','color'=>'success','icon'=>'flask',
                   'desc'=>'Afaan Oromo · English · Mathematics · Physics · Chemistry · Biology · Agriculture · IT (8 subjects)'],
     'social'  => ['label'=>'Social Science','color'=>'info','icon'=>'globe',
-                  'desc'=>'Afaan Oromo · English · Mathematics · Geography · History · Economics · Citizenship Education · IT (8 subjects)'],
+                  'desc'=>'Afaan Oromo · English · Mathematics · Geography · History · Economics · IT (7 subjects)'],
     default   => ['label'=>'General (All Students)','color'=>'primary','icon'=>'users',
                   'desc'=>'13 subjects: Afaan Oromo · Amharic · English · Mathematics · Biology · Chemistry · Physics · Geography · History · Citizenship Ed · IT · Economics · HPE'],
 };

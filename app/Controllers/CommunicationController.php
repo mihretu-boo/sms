@@ -23,7 +23,7 @@ class CommunicationController extends Controller {
         }
 
         $whereStr = implode(' AND ', $where);
-        $stmt = $db->prepare("SELECT a.*, u.username as author_name FROM announcements a JOIN users u ON a.author_id = u.id WHERE $whereStr ORDER BY a.priority DESC, a.created_at DESC");
+        $stmt = $db->prepare("SELECT a.*, u.username as author_name FROM announcements a LEFT JOIN users u ON a.author_id = u.id WHERE $whereStr ORDER BY a.priority DESC, a.created_at DESC");
         $stmt->execute($params);
 
         $canCreate = in_array($role, ['super_admin','principal','vice_principal','teacher']);
@@ -86,10 +86,10 @@ class CommunicationController extends Controller {
         $folder = $this->get('folder', 'inbox');
 
         if ($folder === 'sent') {
-            $stmt = $db->prepare("SELECT m.*, u.username as receiver_name FROM messages m JOIN users u ON m.receiver_id = u.id WHERE m.sender_id=? AND m.is_deleted_sender=0 ORDER BY m.created_at DESC");
+            $stmt = $db->prepare("SELECT m.*, u.username as receiver_name FROM messages m LEFT JOIN users u ON m.receiver_id = u.id WHERE m.sender_id=? AND m.is_deleted_sender=0 ORDER BY m.created_at DESC");
             $stmt->execute([$userId]);
         } else {
-            $stmt = $db->prepare("SELECT m.*, u.username as sender_name FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.receiver_id=? AND m.is_deleted_receiver=0 ORDER BY m.created_at DESC");
+            $stmt = $db->prepare("SELECT m.*, u.username as sender_name FROM messages m LEFT JOIN users u ON m.sender_id = u.id WHERE m.receiver_id=? AND m.is_deleted_receiver=0 ORDER BY m.created_at DESC");
             $stmt->execute([$userId]);
         }
 
@@ -145,7 +145,7 @@ class CommunicationController extends Controller {
         $db     = getDB();
         $userId = Auth::id();
 
-        $stmt = $db->prepare("SELECT m.*, us.username as sender_name, ur.username as receiver_name FROM messages m JOIN users us ON m.sender_id = us.id JOIN users ur ON m.receiver_id = ur.id WHERE m.id=? AND (m.sender_id=? OR m.receiver_id=?)");
+        $stmt = $db->prepare("SELECT m.*, us.username as sender_name, ur.username as receiver_name FROM messages m LEFT JOIN users us ON m.sender_id = us.id LEFT JOIN users ur ON m.receiver_id = ur.id WHERE m.id=? AND (m.sender_id=? OR m.receiver_id=?)");
         $stmt->execute([$id, $userId, $userId]);
         $message = $stmt->fetch();
 

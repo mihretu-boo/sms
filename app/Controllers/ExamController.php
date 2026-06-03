@@ -31,7 +31,7 @@ class ExamController extends Controller {
         }
 
         $whereStr = implode(' AND ', $where);
-        $stmt = $db->prepare("SELECT e.*, c.grade, c.section, s.name as subject_name, u.username as created_by_name FROM exams e JOIN classes c ON e.class_id = c.id JOIN subjects s ON e.subject_id = s.id JOIN users u ON e.created_by = u.id WHERE $whereStr ORDER BY e.exam_date DESC, e.created_at DESC");
+        $stmt = $db->prepare("SELECT e.*, c.grade, c.section, s.name as subject_name, u.username as created_by_name FROM exams e LEFT JOIN classes c ON e.class_id = c.id LEFT JOIN subjects s ON e.subject_id = s.id LEFT JOIN users u ON e.created_by = u.id WHERE $whereStr ORDER BY e.exam_date DESC, e.created_at DESC");
         $stmt->execute($params);
 
         $classes = $db->prepare("SELECT * FROM classes WHERE academic_year_id = ? ORDER BY grade, section");

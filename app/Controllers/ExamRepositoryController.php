@@ -256,7 +256,7 @@ class ExamRepositoryController extends Controller {
         }
 
         // Approval history
-        $approvals = $db->prepare("SELECT ea.*, u.username, u.role FROM exam_approvals ea JOIN users u ON ea.reviewer_id=u.id WHERE ea.exam_repo_id=? ORDER BY ea.created_at ASC");
+        $approvals = $db->prepare("SELECT ea.*, u.username, u.role FROM exam_approvals ea LEFT JOIN users u ON ea.reviewer_id=u.id WHERE ea.exam_repo_id=? ORDER BY ea.created_at ASC");
         $approvals->execute([$id]);
 
         // Version history
@@ -266,7 +266,7 @@ class ExamRepositoryController extends Controller {
         // Download history (admins only)
         $downloads = [];
         if (in_array($role, ['super_admin','principal','vice_principal'])) {
-            $dlStmt = $db->prepare("SELECT ed.*, u.username FROM exam_downloads ed JOIN users u ON ed.user_id=u.id WHERE ed.exam_repo_id=? ORDER BY ed.downloaded_at DESC LIMIT 20");
+            $dlStmt = $db->prepare("SELECT ed.*, u.username FROM exam_downloads ed LEFT JOIN users u ON ed.user_id=u.id WHERE ed.exam_repo_id=? ORDER BY ed.downloaded_at DESC LIMIT 20");
             $dlStmt->execute([$id]);
             $downloads = $dlStmt->fetchAll();
         }
@@ -751,7 +751,7 @@ class ExamRepositoryController extends Controller {
         $byType   = $db->query("SELECT exam_type, COUNT(*) as cnt FROM exam_repository GROUP BY exam_type ORDER BY cnt DESC")->fetchAll();
         $byDept   = $db->query("SELECT d.name, COUNT(er.id) as cnt FROM departments d LEFT JOIN exam_repository er ON er.department_id=d.id GROUP BY d.id ORDER BY cnt DESC")->fetchAll();
         $topDownloads = $db->query("SELECT er.*, s.name as subject_name FROM exam_repository er LEFT JOIN subjects s ON er.subject_id=s.id ORDER BY er.download_count DESC LIMIT 10")->fetchAll();
-        $recentActivity = $db->query("SELECT ed.*, er.title, u.username FROM exam_downloads ed JOIN exam_repository er ON ed.exam_repo_id=er.id JOIN users u ON ed.user_id=u.id ORDER BY ed.downloaded_at DESC LIMIT 20")->fetchAll();
+        $recentActivity = $db->query("SELECT ed.*, er.title, u.username FROM exam_downloads ed LEFT JOIN exam_repository er ON ed.exam_repo_id=er.id LEFT JOIN users u ON ed.user_id=u.id ORDER BY ed.downloaded_at DESC LIMIT 20")->fetchAll();
 
         $monthly = $db->query("SELECT DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as cnt FROM exam_repository WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY month ORDER BY month")->fetchAll();
 
