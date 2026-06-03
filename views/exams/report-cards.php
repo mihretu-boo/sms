@@ -57,8 +57,8 @@
               <span class="fw-bold <?= getGpaClass($gpa) ?>"><?= number_format($gpa,2) ?></span>
             </td>
             <td class="text-center">
-              <?php $gl = calcGrade($gpa * 25)['letter']; ?>
-              <span class="badge bg-<?= match($gl[0]) {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} ?>"><?= $gl ?></span>
+              <?php $gl = calcGrade($gpa * 25)['letter']; $glC = ['A'=>'success','B'=>'primary','C'=>'info','D'=>'warning','F'=>'danger'][$gl[0]] ?? 'secondary'; ?>
+              <span class="badge bg-<?= $glC ?>"><?= $gl ?></span>
             </td>
             <td>
               <a href="<?= url('exams/report-card/'.$s['id']) ?>" class="btn btn-xs btn-outline-primary" target="_blank"><i class="fas fa-eye me-1"></i>View</a>

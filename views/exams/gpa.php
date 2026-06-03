@@ -39,8 +39,8 @@
                 <td><?= $g['subjects'] ?></td>
                 <td class="text-center"><span class="fw-bold fs-6 <?= getGpaClass($g['gpa']) ?>"><?= number_format($g['gpa'],2) ?></span></td>
                 <td class="text-center">
-                  <?php $gl = calcGrade($g['gpa']*25)['letter']; ?>
-                  <span class="badge bg-<?= match($gl[0]) {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} ?>"><?= $gl ?></span>
+                  <?php $gl = calcGrade(($g['gpa'] ?? 0) * 25)['letter']; $glC = ['A'=>'success','B'=>'primary','C'=>'info','D'=>'warning','F'=>'danger'][$gl[0]] ?? 'secondary'; ?>
+                  <span class="badge bg-<?= $glC ?>"><?= $gl ?></span>
                 </td>
               </tr>
               <?php endforeach; ?>

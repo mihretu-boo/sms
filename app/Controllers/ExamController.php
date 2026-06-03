@@ -164,7 +164,7 @@ class ExamController extends Controller {
         $ayId   = (int)getSetting('academic_year_id', 1);
         $semId  = (int)getSetting('semester_id', 1);
 
-        $exams = $db->prepare("SELECT e.*, c.grade, c.section, s.name as subject FROM exams e JOIN classes c ON e.class_id = c.id JOIN subjects s ON e.subject_id = s.id WHERE e.semester_id = ? ORDER BY e.exam_date DESC");
+        $exams = $db->prepare("SELECT e.*, c.grade, c.section, s.name as subject_name FROM exams e JOIN classes c ON e.class_id = c.id JOIN subjects s ON e.subject_id = s.id WHERE e.semester_id = ? ORDER BY e.exam_date DESC, e.created_at DESC");
         $exams->execute([$semId]);
 
         $exam = null;

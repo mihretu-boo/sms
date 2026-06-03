@@ -109,7 +109,7 @@
                   <td class="fw-semibold"><?= e($m['marks_obtained']) ?></td>
                   <td class="text-muted"><?= e($m['total_marks']) ?></td>
                   <td><?= $pct ?>%</td>
-                  <td><span class="badge bg-<?= match($m['grade_letter'][0]??'F') {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} ?>"><?= e($m['grade_letter']??'—') ?></span></td>
+                  <td><span class="badge bg-<?= match(($m['grade_letter'] ?? 'F')[0]) {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} ?>"><?= e($m['grade_letter'] ?? '—') ?></span></td>
                 </tr>
                 <?php endforeach; endif; ?>
               </tbody>

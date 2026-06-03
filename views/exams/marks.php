@@ -80,8 +80,12 @@
                            data-idx="<?= $s['id'] ?>">
                   </td>
                   <td>
-                    <span class="grade-badge-<?= $s['id'] ?> badge <?= $s['grade_letter'] ? 'bg-'.match($s['grade_letter'][0]) {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} : 'bg-light text-muted' ?>">
-                      <?= e($s['grade_letter'] ?? '—') ?>
+                    <?php
+                    $gl = $s['grade_letter'] ?? '';
+                    $glColor = $gl ? ('bg-' . (['A'=>'success','B'=>'primary','C'=>'info','D'=>'warning','F'=>'danger'][$gl[0]] ?? 'secondary')) : 'bg-light text-muted';
+                    ?>
+                    <span class="grade-badge-<?= $s['id'] ?> badge <?= $glColor ?>">
+                      <?= e($gl ?: '—') ?>
                     </span>
                   </td>
                   <td>

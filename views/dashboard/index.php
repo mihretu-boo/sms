@@ -472,7 +472,7 @@ $attPct  = ($att['total'] ?? 0) > 0 ? round(($att['present']/$att['total'])*100)
                 <td><?= e($m['subject_name'] ?? $m['subject']) ?></td>
                 <td><span class="badge bg-light text-dark"><?= ucfirst(str_replace('_',' ',$m['type'])) ?></span></td>
                 <td class="fw-semibold"><?= e($m['marks_obtained']) ?>/<?= e($m['total_marks']) ?></td>
-                <td><span class="badge bg-<?= match($m['grade_letter'][0] ?? 'F') {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} ?>"><?= e($m['grade_letter'] ?? '-') ?></span></td>
+                <td><span class="badge bg-<?= match(($m['grade_letter'] ?? 'F')[0]) {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} ?>"><?= e($m['grade_letter'] ?? '-') ?></span></td>
               </tr>
               <?php endforeach; endif; ?>
             </tbody>

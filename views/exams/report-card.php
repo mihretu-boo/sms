@@ -46,8 +46,8 @@
         <td class="text-center"><?= $sub['final'] > 0 ? e($sub['final']) : '—' ?></td>
         <td class="text-center fw-bold <?= getGpaClass(round($sub['gpa']??0,2)) ?>"><?= number_format($sub['gpa']??0,2) ?></td>
         <td class="text-center">
-          <?php $gl = $sub['grade']??'—'; ?>
-          <span class="badge bg-<?= match($gl[0]??'F') {'A'=>'success','B'=>'primary','C'=>'info','D'=>'warning',default=>'danger'} ?>"><?= e($gl) ?></span>
+          <?php $gl = $sub['grade'] ?? 'F'; $glC = ['A'=>'success','B'=>'primary','C'=>'info','D'=>'warning','F'=>'danger'][$gl[0]] ?? 'secondary'; ?>
+          <span class="badge bg-<?= $glC ?>"><?= e($gl) ?></span>
         </td>
       </tr>
       <?php endforeach; ?>
