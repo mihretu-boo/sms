@@ -19,7 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Test connection
         $dsn = "mysql:host=$host;charset=utf8mb4";
-        $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $pdo = new PDO($dsn, $user, $pass, [
+            PDO::ATTR_ERRMODE                => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,  // prevent "unbuffered query" errors
+        ]);
         $messages[] = ['type'=>'success', 'text'=>'✓ Database connection successful'];
 
         // Create database
@@ -31,30 +34,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sqlFile = __DIR__ . '/database/sjassms_final.sql';
         if (file_exists($sqlFile)) {
             $sql = file_get_contents($sqlFile);
-            // Remove USE statement since we already selected
-            $sql = preg_replace('/^USE\s+`[^`]+`\s*;/m', '', $sql);
-            // Remove CREATE DATABASE statement
-            $sql = preg_replace('/CREATE DATABASE.*?;\s*/s', '', $sql);
 
-            // Split and execute
+            // ── Step 1: Strip ALL SQL line comments (-- ...)
+            //    This is the critical fix: the old code checked if a statement
+            //    *started* with '--' and skipped it, but comment blocks appear
+            //    BEFORE CREATE TABLE / DROP TABLE statements after a ';' split,
+            //    causing the whole statement including the SQL to be silently skipped.
+            $sql = preg_replace('/--[^\n]*/m', '', $sql);
+
+            // ── Step 2: Strip block comments (/* ... */)
+            $sql = preg_replace('/\/\*[\s\S]*?\*\//', '', $sql);
+
+            // ── Step 3: Remove USE and CREATE DATABASE (already handled by PDO)
+            $sql = preg_replace('/\bUSE\s+`[^`]+`\s*;?/m',              '', $sql);
+            $sql = preg_replace('/\bCREATE\s+DATABASE\b.*?;/si',         '', $sql);
+            $sql = preg_replace('/\bDROP\s+DATABASE\b.*?;/si',           '', $sql);
+
+            // ── Step 4: Remove session-level statements not needed in PHP context
+            $sql = preg_replace('/^\s*SET\s+SQL_MODE\s*=.*?;/mi',        '', $sql);
+            $sql = preg_replace('/^\s*SET\s+time_zone\s*=.*?;/mi',       '', $sql);
+            $sql = preg_replace('/^\s*SET\s+NAMES\s+\w+\s*;/mi',         '', $sql);
+            $sql = preg_replace('/^\s*SET\s+AUTOCOMMIT\s*=.*?;/mi',      '', $sql);
+            $sql = preg_replace('/^\s*START\s+TRANSACTION\s*;/mi',       '', $sql);
+            $sql = preg_replace('/^\s*COMMIT\s*;/mi',                     '', $sql);
+
+            // ── Step 5: Enable FK checks explicitly via PDO before executing
+            $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+
+            // ── Step 6: Split by semicolons and execute
             $statements = array_filter(array_map('trim', explode(';', $sql)));
-            $executed = 0;
+            $executed   = 0;
+            $warnings   = 0;
+
             foreach ($statements as $stmt) {
-                if (!empty($stmt) && strtoupper(substr($stmt, 0, 2)) !== '--') {
-                    try {
-                        $pdo->exec($stmt);
-                        $executed++;
-                    } catch (PDOException $e) {
-                        // Ignore duplicate errors for seed data
-                        if (strpos($e->getMessage(), 'Duplicate') === false) {
-                            $messages[] = ['type'=>'warning', 'text'=>'⚠ ' . substr($e->getMessage(), 0, 100)];
-                        }
-                    }
+                if (empty($stmt)) continue;
+
+                // Skip SELECT / SHOW statements — these are verification queries
+                // in the SQL file and leave unbuffered results that break PDO
+                $firstWord = strtoupper(substr(ltrim($stmt), 0, 6));
+                if ($firstWord === 'SELECT' || $firstWord === 'SHOW  ') continue;
+
+                try {
+                    $pdo->exec($stmt);
+                    $executed++;
+                } catch (PDOException $e) {
+                    $msg = $e->getMessage();
+                    // Silently ignore: duplicate key, already-exists, already-dropped
+                    if (strpos($msg, 'Duplicate entry')          !== false) continue;
+                    if (strpos($msg, 'already exists')           !== false) continue;
+                    if (strpos($msg, "Can't drop")               !== false) continue;
+                    if (strpos($msg, 'Unknown table')            !== false) continue;
+
+                    $warnings++;
+                    $messages[] = ['type'=>'warning', 'text'=>'⚠ ' . substr($msg, 0, 150)];
                 }
             }
-            $messages[] = ['type'=>'success', 'text'=>"✓ Schema installed ($executed statements executed)"];
+
+            // ── Step 7: Re-enable FK checks
+            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+
+            if ($warnings === 0) {
+                $messages[] = ['type'=>'success', 'text'=>"✓ Schema installed perfectly ($executed statements, 0 warnings)"];
+            } else {
+                $messages[] = ['type'=>'success', 'text'=>"✓ Schema installed ($executed statements, $warnings warnings — see above)"];
+            }
         } else {
-            $messages[] = ['type'=>'danger', 'text'=>'✗ SQL file not found: database/sjassms.sql'];
+            $messages[] = ['type'=>'danger', 'text'=>'✗ SQL file not found: database/sjassms_final.sql'];
         }
 
         // Update config/database.php
