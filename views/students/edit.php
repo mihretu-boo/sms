@@ -89,16 +89,53 @@
         </div>
       </div>
       <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-dark text-white py-3"><h6 class="mb-0"><i class="fas fa-school me-2"></i>Class</h6></div>
+        <div class="card-header bg-dark text-white py-3"><h6 class="mb-0"><i class="fas fa-school me-2"></i>Class & Stream</h6></div>
         <div class="card-body">
-          <select name="class_id" class="form-select">
-            <option value="">No Class</option>
-            <?php foreach ($classes as $cls): ?>
-            <option value="<?= $cls['id'] ?>" <?= selected($student['class_id'],$cls['id']) ?>>Grade <?= e($cls['grade']) ?>-<?= e($cls['section']) ?></option>
-            <?php endforeach; ?>
-          </select>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Class</label>
+            <select name="class_id" id="editClassSelect" class="form-select" onchange="onEditClassChange(this)">
+              <option value="">No Class</option>
+              <?php foreach ($classes as $cls):
+                $sl = match($cls['stream']) {'natural'=>' [Natural]','social'=>' [Social]',default=>''};
+              ?>
+              <option value="<?= $cls['id'] ?>"
+                      data-grade="<?= $cls['grade'] ?>"
+                      data-stream="<?= $cls['stream'] ?>"
+                      <?= selected($student['class_id'],$cls['id']) ?>>
+                Grade <?= e($cls['grade']) ?>-<?= e($cls['section']) ?><?= $sl ?>
+              </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <!-- Stream selection for Grade 11/12 -->
+          <div id="editStreamDiv" style="display:<?= in_array($student['grade']??'',['11','12']) ? '' : 'none' ?>">
+            <label class="form-label small fw-semibold">Stream</label>
+            <select name="stream" id="editStreamSelect" class="form-select">
+              <option value="natural" <?= selected($student['stream']??'natural','natural') ?>>🔬 Natural Science</option>
+              <option value="social"  <?= selected($student['stream']??'','social') ?>>🌍 Social Science</option>
+            </select>
+          </div>
         </div>
       </div>
+
+      <script>
+      function onEditClassChange(sel) {
+        var opt   = sel.options[sel.selectedIndex];
+        var grade = opt.dataset.grade || '';
+        var str   = opt.dataset.stream || 'general';
+        var div   = document.getElementById('editStreamDiv');
+        var ss    = document.getElementById('editStreamSelect');
+        if (grade === '11' || grade === '12') {
+          div.style.display = '';
+          if (str && str !== 'general') ss.value = str;
+        } else {
+          div.style.display = 'none';
+        }
+      }
+      var ecs = document.getElementById('editClassSelect');
+      if (ecs && ecs.value) onEditClassChange(ecs);
+      </script>
       <div class="card border-0 shadow-sm">
         <div class="card-body">
           <button type="submit" class="btn btn-warning w-100 mb-2"><i class="fas fa-save me-2"></i>Update Student</button>

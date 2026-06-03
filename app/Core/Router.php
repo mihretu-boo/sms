@@ -74,8 +74,9 @@ class Router {
         $this->add('POST', 'academics/subjects/delete/{id}', 'AcademicController', 'deleteSubject');
         $this->add('GET',  'academics/departments','AcademicController','departments');
         $this->add('POST', 'academics/departments','AcademicController','saveDepartment');
-        $this->add('GET',  'academics/assign-subjects','AcademicController','assignSubjects');
-        $this->add('POST', 'academics/assign-subjects','AcademicController','saveAssignments');
+        $this->add('GET',  'academics/assign-subjects',       'AcademicController','assignSubjects');
+        $this->add('POST', 'academics/assign-subjects',       'AcademicController','saveAssignments');
+        $this->add('POST', 'academics/assign-subjects/auto',  'AcademicController','autoAssignSubjects');
 
         // Exams
         $this->add('GET',  'exams',               'ExamController', 'index');

@@ -42,20 +42,28 @@
   <?php foreach ($classes as $cls): ?>
   <div class="col-md-4 col-lg-3">
     <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center pb-2">
-        <div class="display-6 fw-bold text-primary"><?= e($cls['grade']) ?></div>
-        <div class="badge bg-primary mb-2">Section <?= e($cls['section']) ?></div>
+      <?php
+      $gradeNum = (int)($cls['grade'] ?? 0);
+      $streamBg = match($cls['stream']??'general') {'natural'=>'success','social'=>'info',default=>'primary'};
+      $streamLabel = match($cls['stream']??'general') {'natural'=>'🔬 Natural','social'=>'🌍 Social',default=>''};
+      ?>
+      <div class="card-header bg-<?= $streamBg ?> text-white py-2 text-center">
+        <div class="fw-bold fs-4">Grade <?= e($cls['grade']) ?><span class="fs-6 ms-1">-<?= e($cls['section']) ?></span></div>
+        <?php if ($streamLabel): ?><small><?= $streamLabel ?></small><?php endif; ?>
+      </div>
+      <div class="card-body text-center py-3">
         <div class="text-muted small mb-2"><i class="fas fa-users me-1"></i><?= $cls['student_count'] ?? 0 ?> / <?= $cls['max_students'] ?> students</div>
         <?php if ($cls['teacher_first']): ?>
-        <div class="small text-muted"><i class="fas fa-chalkboard-teacher me-1"></i><?= e($cls['teacher_first'].' '.$cls['teacher_last']) ?></div>
+        <div class="small text-muted mb-1"><i class="fas fa-chalkboard-teacher me-1"></i><?= e($cls['teacher_first'].' '.$cls['teacher_last']) ?></div>
         <?php endif; ?>
         <?php if ($cls['room_no']): ?>
         <div class="small text-muted"><i class="fas fa-door-open me-1"></i>Room <?= e($cls['room_no']) ?></div>
         <?php endif; ?>
       </div>
-      <div class="card-footer bg-white border-top-0 pt-0 d-flex gap-1 justify-content-center">
+      <div class="card-footer bg-white pt-0 d-flex flex-wrap gap-1 justify-content-center pb-2">
         <a href="<?= url('students?class_id='.$cls['id']) ?>" class="btn btn-xs btn-outline-primary">Students</a>
-        <a href="<?= url('attendance/take?class_id='.$cls['id']) ?>" class="btn btn-xs btn-outline-success">Attendance</a>
+        <a href="<?= url('attendance/take?class_id='.$cls['id']) ?>" class="btn btn-xs btn-outline-success">Attend.</a>
+        <a href="<?= url('academics/assign-subjects?class_id='.$cls['id']) ?>" class="btn btn-xs btn-outline-info">Subjects</a>
         <?php if (Auth::can('academics')): ?>
         <button class="btn btn-xs btn-outline-secondary" onclick="editClass(<?= htmlspecialchars(json_encode($cls)) ?>)">Edit</button>
         <?php endif; ?>

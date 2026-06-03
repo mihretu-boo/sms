@@ -173,18 +173,58 @@
         <div class="card-body">
           <div class="mb-3">
             <label class="form-label required">Class</label>
-            <select name="class_id" class="form-select" required>
+            <select name="class_id" class="form-select" id="classSelect" required onchange="onClassChange(this)">
               <option value="">Select Class</option>
-              <?php foreach ($classes as $cls): ?>
-              <option value="<?= $cls['id'] ?>" <?= selected(old('class_id'), $cls['id']) ?>>Grade <?= e($cls['grade']) ?>-<?= e($cls['section']) ?></option>
+              <?php foreach ($classes as $cls):
+                $sl = match($cls['stream']) {'natural'=>' [Natural]','social'=>' [Social]',default=>''};
+              ?>
+              <option value="<?= $cls['id'] ?>"
+                      data-grade="<?= $cls['grade'] ?>"
+                      data-stream="<?= $cls['stream'] ?>"
+                      <?= selected(old('class_id'), $cls['id']) ?>>
+                Grade <?= e($cls['grade']) ?>-<?= e($cls['section']) ?><?= $sl ?>
+              </option>
               <?php endforeach; ?>
             </select>
           </div>
+
+          <!-- Stream selection — shown only for Grade 11/12 -->
+          <div class="mb-3" id="streamDiv" style="display:none">
+            <label class="form-label fw-semibold">Stream <span class="text-danger">*</span></label>
+            <select name="stream" id="streamSelect" class="form-select">
+              <option value="natural">🔬 Natural Science</option>
+              <option value="social">🌍 Social Science</option>
+            </select>
+            <div class="form-text small">
+              <strong>Natural Science:</strong> Afaan Oromo, English, Math, Physics, Chemistry, Biology, Agriculture, IT<br>
+              <strong>Social Science:</strong> Afaan Oromo, English, Math, Geography, History, Economics, Citizenship Ed, IT
+            </div>
+          </div>
+
           <div class="mb-3">
             <label class="form-label required">Admission Date</label>
             <input type="date" name="admission_date" class="form-control flatpickr" value="<?= e(old('admission_date', date('Y-m-d'))) ?>" required>
           </div>
         </div>
+
+        <script>
+        function onClassChange(sel) {
+          var opt    = sel.options[sel.selectedIndex];
+          var grade  = opt.dataset.grade || '';
+          var stream = opt.dataset.stream || 'general';
+          var div    = document.getElementById('streamDiv');
+          var sSelect= document.getElementById('streamSelect');
+          if (grade === '11' || grade === '12') {
+            div.style.display = '';
+            if (stream && stream !== 'general') sSelect.value = stream;
+          } else {
+            div.style.display = 'none';
+          }
+        }
+        // Run on page load if class is pre-selected
+        var cs = document.getElementById('classSelect');
+        if (cs && cs.value) onClassChange(cs);
+        </script>
       </div>
 
       <!-- Submit -->

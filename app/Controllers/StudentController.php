@@ -81,6 +81,18 @@ class StudentController extends Controller {
         $db   = getDB();
         $ayId = (int)getSetting('academic_year_id', 1);
 
+        $classId     = $this->post('class_id', '');
+        $classStream = 'general';
+        if ($classId) {
+            // Inherit stream from class for Grade 11/12
+            $clsQ = getDB()->prepare("SELECT grade, stream FROM classes WHERE id=?");
+            $clsQ->execute([$classId]);
+            $clsData = $clsQ->fetch();
+            if ($clsData && in_array($clsData['grade'], ['11','12'])) {
+                $classStream = $this->post('stream', $clsData['stream']);
+            }
+        }
+
         $data = [
             'first_name'             => $this->post('first_name', ''),
             'last_name'              => $this->post('last_name', ''),
@@ -89,7 +101,8 @@ class StudentController extends Controller {
             'blood_type'             => $this->post('blood_type', ''),
             'nationality'            => $this->post('nationality', 'Ethiopian'),
             'religion'               => $this->post('religion', ''),
-            'class_id'               => $this->post('class_id', ''),
+            'class_id'               => $classId,
+            'stream'                 => $classStream,
             'admission_date'         => $this->post('admission_date', date('Y-m-d')),
             'status'                 => 'active',
             'address'                => $this->post('address', ''),
@@ -236,6 +249,18 @@ class StudentController extends Controller {
         $db      = getDB();
         $student = $this->findStudentOrFail($db, (int)$id);
 
+        // Determine stream for Grade 11/12
+        $newClassId = $this->post('class_id', $student['class_id']);
+        $newStream  = $student['stream'] ?? 'general';
+        if ($newClassId) {
+            $clsQ = $db->prepare("SELECT grade FROM classes WHERE id=?");
+            $clsQ->execute([$newClassId]);
+            $clsData = $clsQ->fetch();
+            if ($clsData && in_array($clsData['grade'], ['11','12'])) {
+                $newStream = $this->post('stream', $newStream);
+            }
+        }
+
         $data = [
             'first_name'              => $this->post('first_name', $student['first_name']),
             'last_name'               => $this->post('last_name', $student['last_name']),
@@ -244,7 +269,8 @@ class StudentController extends Controller {
             'blood_type'              => $this->post('blood_type', ''),
             'nationality'             => $this->post('nationality', 'Ethiopian'),
             'religion'                => $this->post('religion', ''),
-            'class_id'                => $this->post('class_id', $student['class_id']),
+            'class_id'                => $newClassId,
+            'stream'                  => $newStream,
             'status'                  => $this->post('status', $student['status']),
             'address'                 => $this->post('address', ''),
             'city'                    => $this->post('city', ''),

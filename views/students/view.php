@@ -29,6 +29,12 @@
         <hr>
         <div class="text-start small">
           <div class="mb-2"><i class="fas fa-layer-group text-primary me-2"></i> <strong>Grade:</strong> <?= $student['grade'] ? 'Grade '.$student['grade'].'-'.$student['section'] : '—' ?></div>
+          <?php if (in_array($student['grade']??'', ['11','12'])): ?>
+          <?php $streamInfo = match($student['stream']??'general') {'natural'=>['🔬 Natural Science','success'],'social'=>['🌍 Social Science','info'],default=>['General','secondary']}; ?>
+          <div class="mb-2">
+            <span class="badge bg-<?= $streamInfo[1] ?>"><?= $streamInfo[0] ?></span>
+          </div>
+          <?php endif; ?>
           <div class="mb-2"><i class="fas fa-<?= $student['gender']==='male' ? 'mars' : 'venus' ?> text-info me-2"></i> <?= ucfirst($student['gender']) ?></div>
           <div class="mb-2"><i class="fas fa-birthday-cake text-warning me-2"></i> <?= formatDate($student['dob']) ?></div>
           <div class="mb-2"><i class="fas fa-phone text-success me-2"></i> <?= e($student['phone'] ?? '—') ?></div>

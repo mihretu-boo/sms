@@ -126,27 +126,42 @@ class AcademicController extends Controller {
 
     public function subjects(): void {
         $this->requireAuth(['super_admin','principal','vice_principal','registrar','dept_head']);
-        $db    = getDB();
-        $grade = $this->get('grade', '');
+        $db     = getDB();
+        $grade  = $this->get('grade', '');
+        $stream = $this->get('stream', '');
         $deptId = $this->get('dept_id', '');
 
         $where  = ['1=1'];
         $params = [];
-        if ($grade)  { $where[] = "(s.grade = ? OR s.grade = 'all')"; $params[] = $grade; }
+        if ($grade)  { $where[] = "s.grade = ?"; $params[] = $grade; }
+        if ($stream) { $where[] = "s.stream = ?"; $params[] = $stream; }
         if ($deptId) { $where[] = "s.department_id = ?"; $params[] = $deptId; }
 
         $whereStr = implode(' AND ', $where);
-        $stmt = $db->prepare("SELECT s.*, d.name as dept_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.id WHERE $whereStr ORDER BY s.grade, s.name");
+        $stmt = $db->prepare(
+            "SELECT s.*, d.name as dept_name
+             FROM subjects s
+             LEFT JOIN departments d ON s.department_id = d.id
+             WHERE $whereStr
+             ORDER BY s.grade, FIELD(s.stream,'all','natural','social'), s.name"
+        );
         $stmt->execute($params);
 
         $depts = $db->query("SELECT * FROM departments ORDER BY name")->fetchAll();
 
+        // Count by grade for summary
+        $gradeCount = $db->query(
+            "SELECT grade, stream, COUNT(*) as cnt FROM subjects GROUP BY grade, stream ORDER BY grade, stream"
+        )->fetchAll();
+
         $this->render('academics/subjects', [
-            'title'    => 'Subjects',
-            'subjects' => $stmt->fetchAll(),
-            'depts'    => $depts,
-            'grade'    => $grade,
-            'deptId'   => $deptId,
+            'title'      => 'Subjects',
+            'subjects'   => $stmt->fetchAll(),
+            'depts'      => $depts,
+            'grade'      => $grade,
+            'stream'     => $stream,
+            'deptId'     => $deptId,
+            'gradeCount' => $gradeCount,
         ]);
     }
 
@@ -161,7 +176,9 @@ class AcademicController extends Controller {
             'name'          => $this->post('name', ''),
             'department_id' => $this->post('department_id', '') ?: null,
             'grade'         => $this->post('grade', '9'),
+            'stream'        => $this->post('stream', 'all'),
             'credit_hours'  => $this->post('credit_hours', 3),
+            'periods_week'  => $this->post('periods_week', 3),
             'type'          => $this->post('type', 'core'),
             'description'   => $this->post('description', ''),
         ];
@@ -234,65 +251,169 @@ class AcademicController extends Controller {
 
     public function assignSubjects(): void {
         $this->requireAuth(['super_admin','principal','registrar']);
-        $db   = getDB();
-        $ayId = (int)getSetting('academic_year_id', 1);
-        $semId= (int)getSetting('semester_id', 1);
+        $db    = getDB();
+        $ayId  = (int)getSetting('academic_year_id', 1);
+        $semId = (int)getSetting('semester_id', 1);
         $classId = $this->get('class_id', '');
 
-        $classes  = $db->prepare("SELECT * FROM classes WHERE academic_year_id=? ORDER BY grade, section");
+        $classes = $db->prepare(
+            "SELECT c.*, COUNT(s.id) as student_count
+             FROM classes c
+             LEFT JOIN students s ON s.class_id=c.id AND s.status='active'
+             WHERE c.academic_year_id=?
+             GROUP BY c.id
+             ORDER BY c.grade, c.section"
+        );
         $classes->execute([$ayId]);
 
-        $assigned = [];
-        $subjects = [];
-        if ($classId) {
-            $cls = $db->prepare("SELECT grade FROM classes WHERE id=?");
-            $cls->execute([$classId]);
-            $cls = $cls->fetch();
-            $grade = $cls['grade'] ?? '9';
+        $assigned    = [];
+        $subjects    = [];
+        $classInfo   = null;
+        $classStream = 'general';
 
-            $subStmt = $db->prepare("SELECT * FROM subjects WHERE grade=? OR grade='all' ORDER BY name");
+        if ($classId) {
+            $clsStmt = $db->prepare("SELECT * FROM classes WHERE id=?");
+            $clsStmt->execute([$classId]);
+            $classInfo   = $clsStmt->fetch();
+            $grade       = $classInfo['grade']  ?? '9';
+            $classStream = $classInfo['stream'] ?? 'general';
+
+            // Build subject filter based on grade and class stream
+            if (in_array($grade, ['11','12'])) {
+                // Grade 11/12: show subjects matching the class stream
+                if ($classStream === 'natural') {
+                    $subStmt = $db->prepare(
+                        "SELECT * FROM subjects
+                         WHERE grade=? AND (stream='all' OR stream='natural')
+                         ORDER BY FIELD(stream,'all','natural'), name"
+                    );
+                } elseif ($classStream === 'social') {
+                    $subStmt = $db->prepare(
+                        "SELECT * FROM subjects
+                         WHERE grade=? AND (stream='all' OR stream='social')
+                         ORDER BY FIELD(stream,'all','social'), name"
+                    );
+                } else {
+                    // General / unspecified — show all for this grade
+                    $subStmt = $db->prepare(
+                        "SELECT * FROM subjects WHERE grade=? ORDER BY stream, name"
+                    );
+                }
+            } else {
+                // Grade 9/10: all subjects stream='all'
+                $subStmt = $db->prepare(
+                    "SELECT * FROM subjects WHERE grade=? ORDER BY name"
+                );
+            }
             $subStmt->execute([$grade]);
             $subjects = $subStmt->fetchAll();
 
-            $asgStmt = $db->prepare("SELECT cs.*, s.first_name as teacher_first, s.last_name as teacher_last FROM class_subjects cs LEFT JOIN staff s ON cs.teacher_id = s.id WHERE cs.class_id=? AND cs.semester_id=?");
+            // Currently assigned
+            $asgStmt = $db->prepare(
+                "SELECT cs.*, st.first_name as teacher_first, st.last_name as teacher_last
+                 FROM class_subjects cs
+                 LEFT JOIN staff st ON cs.teacher_id=st.id
+                 WHERE cs.class_id=? AND cs.semester_id=?"
+            );
             $asgStmt->execute([$classId, $semId]);
             foreach ($asgStmt->fetchAll() as $row) {
                 $assigned[$row['subject_id']] = $row;
             }
         }
 
-        $teachers = $db->query("SELECT s.id, s.first_name, s.last_name FROM staff s WHERE s.status='active' ORDER BY s.first_name")->fetchAll();
+        $teachers = $db->query(
+            "SELECT s.id, s.first_name, s.last_name, d.name as dept_name
+             FROM staff s LEFT JOIN departments d ON s.department_id=d.id
+             WHERE s.status='active' ORDER BY s.first_name"
+        )->fetchAll();
 
         $this->render('academics/assign-subjects', [
-            'title'    => 'Assign Subjects',
-            'classes'  => $classes->fetchAll(),
-            'subjects' => $subjects,
-            'assigned' => $assigned,
-            'teachers' => $teachers,
-            'classId'  => $classId,
-            'semId'    => $semId,
+            'title'       => 'Assign Subjects',
+            'classes'     => $classes->fetchAll(),
+            'subjects'    => $subjects,
+            'assigned'    => $assigned,
+            'teachers'    => $teachers,
+            'classId'     => $classId,
+            'classInfo'   => $classInfo,
+            'classStream' => $classStream,
+            'semId'       => $semId,
         ]);
     }
 
-    public function saveAssignments(): void {
+    public function autoAssignSubjects(): void {
         $this->requireAuth(['super_admin','principal','registrar']);
         $this->validateCsrf();
 
         $db      = getDB();
         $classId = $this->post('class_id', '');
         $semId   = $this->post('semester_id', (int)getSetting('semester_id', 1));
+
+        $clsStmt = $db->prepare("SELECT grade, stream FROM classes WHERE id=?");
+        $clsStmt->execute([$classId]);
+        $cls   = $clsStmt->fetch();
+        if (!$cls) { Flash::set('error', 'Class not found.'); $this->redirect('academics/assign-subjects?class_id='.$classId); return; }
+
+        $grade  = $cls['grade'];
+        $stream = $cls['stream'];
+
+        // Get all matching subjects
+        if (in_array($grade, ['11','12']) && $stream === 'natural') {
+            $where = "grade=? AND (stream='all' OR stream='natural')";
+        } elseif (in_array($grade, ['11','12']) && $stream === 'social') {
+            $where = "grade=? AND (stream='all' OR stream='social')";
+        } else {
+            $where = "grade=? AND stream='all'";
+        }
+
+        $subStmt = $db->prepare("SELECT id, periods_week FROM subjects WHERE $where");
+        $subStmt->execute([$grade]);
+        $subs = $subStmt->fetchAll();
+
+        try {
+            $db->beginTransaction();
+            $db->prepare("DELETE FROM class_subjects WHERE class_id=? AND semester_id=?")->execute([$classId, $semId]);
+            $insStmt = $db->prepare("INSERT INTO class_subjects (class_id, subject_id, semester_id, periods_per_week) VALUES (?,?,?,?)");
+            foreach ($subs as $s) {
+                $insStmt->execute([$classId, $s['id'], $semId, $s['periods_week'] ?? 3]);
+            }
+            $db->commit();
+            Flash::set('success', count($subs) . ' subjects auto-assigned for Grade ' . $grade . ' (' . ucfirst($stream) . ' stream).');
+        } catch (Exception $e) {
+            $db->rollBack();
+            Flash::set('error', 'Failed: ' . $e->getMessage());
+        }
+        $this->redirect('academics/assign-subjects?class_id=' . $classId);
+    }
+
+    public function saveAssignments(): void {
+        $this->requireAuth(['super_admin','principal','registrar']);
+        $this->validateCsrf();
+
+        $db       = getDB();
+        $classId  = $this->post('class_id', '');
+        $semId    = $this->post('semester_id', (int)getSetting('semester_id', 1));
         $subjects = $_POST['subject_ids'] ?? [];
         $teachers = $_POST['teacher_id'] ?? [];
 
         try {
             $db->beginTransaction();
             $db->prepare("DELETE FROM class_subjects WHERE class_id=? AND semester_id=?")->execute([$classId, $semId]);
-            $stmt = $db->prepare("INSERT INTO class_subjects (class_id, subject_id, teacher_id, semester_id, periods_per_week) VALUES (?,?,?,?,?)");
+            $stmt = $db->prepare(
+                "INSERT INTO class_subjects (class_id, subject_id, teacher_id, semester_id, periods_per_week)
+                 VALUES (?,?,?,?,?)"
+            );
             foreach ($subjects as $subId) {
-                $stmt->execute([$classId, $subId, $teachers[$subId] ?? null, $semId, $_POST['periods'][$subId] ?? 3]);
+                $stmt->execute([
+                    $classId,
+                    $subId,
+                    $teachers[$subId] ?? null,
+                    $semId,
+                    $_POST['periods'][$subId] ?? 3,
+                ]);
             }
             $db->commit();
-            Flash::set('success', 'Subject assignments saved.');
+            Auth::audit('assign_subjects', 'academics', (int)$classId);
+            Flash::set('success', count($subjects) . ' subject(s) assigned successfully.');
         } catch (Exception $e) {
             $db->rollBack();
             Flash::set('error', 'Failed: ' . $e->getMessage());

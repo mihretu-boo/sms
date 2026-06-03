@@ -66,7 +66,7 @@
             <th width="40">#</th>
             <th>Student</th>
             <th>Student ID</th>
-            <th>Class</th>
+            <th>Class / Stream</th>
             <th>Gender</th>
             <th>Phone</th>
             <th>Status</th>
@@ -90,7 +90,16 @@
               </div>
             </td>
             <td><span class="badge bg-light text-dark font-monospace"><?= e($s['student_id']) ?></span></td>
-            <td><?= $s['grade'] ? 'Grade ' . e($s['grade']) . '-' . e($s['section']) : '<span class="text-muted">—</span>' ?></td>
+            <td>
+              <?php if ($s['grade']): ?>
+              Grade <?= e($s['grade']) ?>-<?= e($s['section']) ?>
+              <?php if (in_array($s['grade'],['11','12'])): ?>
+              <br><span class="badge <?= ($s['stream']??'general')==='natural' ? 'bg-success-light text-success border border-success' : (($s['stream']??'')=='social' ? 'bg-info-light text-info border border-info' : 'bg-light text-muted') ?>" style="font-size:10px">
+                <?= match($s['stream']??'general') {'natural'=>'🔬 Natural','social'=>'🌍 Social',default=>'—'} ?>
+              </span>
+              <?php endif; ?>
+              <?php else: ?><span class="text-muted">—</span><?php endif; ?>
+            </td>
             <td>
               <i class="fas fa-<?= $s['gender']==='male' ? 'mars text-primary' : 'venus text-danger' ?>"></i>
               <?= ucfirst($s['gender']) ?>

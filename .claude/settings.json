@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& \"c:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" -u root sjassms -e \"SOURCE c:/xampp/htdocs/studentmanagement/database/ethiopian_curriculum_migration.sql\" 2>&1)"
+    ]
+  }
+}
