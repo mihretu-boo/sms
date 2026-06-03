@@ -201,6 +201,25 @@ class Router {
         $this->add('POST', 'profile/password',    'ProfileController', 'changePassword');
         $this->add('POST', 'profile/photo',       'ProfileController', 'uploadPhoto');
 
+        // Exam Repository
+        $this->add('GET',  'exam-repository',                       'ExamRepositoryController', 'index');
+        $this->add('GET',  'exam-repository/upload',                'ExamRepositoryController', 'upload');
+        $this->add('POST', 'exam-repository/upload',                'ExamRepositoryController', 'store');
+        $this->add('GET',  'exam-repository/browse',                'ExamRepositoryController', 'browse');
+        $this->add('GET',  'exam-repository/manage',                'ExamRepositoryController', 'manage');
+        $this->add('GET',  'exam-repository/view/{id}',             'ExamRepositoryController', 'view');
+        $this->add('GET',  'exam-repository/download/{id}',         'ExamRepositoryController', 'download');
+        $this->add('GET',  'exam-repository/edit/{id}',             'ExamRepositoryController', 'edit');
+        $this->add('POST', 'exam-repository/edit/{id}',             'ExamRepositoryController', 'update');
+        $this->add('POST', 'exam-repository/submit/{id}',           'ExamRepositoryController', 'submit');
+        $this->add('POST', 'exam-repository/approve/{id}',          'ExamRepositoryController', 'approve');
+        $this->add('POST', 'exam-repository/archive/{id}',          'ExamRepositoryController', 'archive');
+        $this->add('POST', 'exam-repository/delete/{id}',           'ExamRepositoryController', 'delete');
+        $this->add('GET',  'exam-repository/question-bank',         'ExamRepositoryController', 'questionBank');
+        $this->add('POST', 'exam-repository/question-bank',         'ExamRepositoryController', 'storeQuestion');
+        $this->add('POST', 'exam-repository/question-bank/delete/{id}','ExamRepositoryController','deleteQuestion');
+        $this->add('GET',  'exam-repository/reports',               'ExamRepositoryController', 'reports');
+
         // API endpoints
         $this->add('GET',  'api/students',         'ApiController', 'students');
         $this->add('GET',  'api/staff',            'ApiController', 'staff');

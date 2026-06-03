@@ -105,6 +105,14 @@ define('NAVIGATION', [
             ['label'=>'Report Cards','url'=>'/exams/report-cards'],
             ['label'=>'GPA Calculator','url'=>'/exams/gpa'],
         ]],
+        ['icon'=>'archive','label'=>'Exam Repository','url'=>'/exam-repository','children'=>[
+            ['label'=>'Dashboard','url'=>'/exam-repository'],
+            ['label'=>'Browse Exams','url'=>'/exam-repository/browse'],
+            ['label'=>'Upload Exam','url'=>'/exam-repository/upload'],
+            ['label'=>'Manage','url'=>'/exam-repository/manage'],
+            ['label'=>'Question Bank','url'=>'/exam-repository/question-bank'],
+            ['label'=>'Reports','url'=>'/exam-repository/reports'],
+        ]],
         ['icon'=>'clock','label'=>'Timetable','url'=>'/timetable'],
         ['icon'=>'tasks','label'=>'Assignments','url'=>'/assignments'],
         ['icon'=>'book-open','label'=>'Library','url'=>'/library','children'=>[
