@@ -13,11 +13,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function isMobile() { return window.innerWidth < 992; }
 
+  function openMobileSidebar() {
+    sidebar && sidebar.classList.add('mobile-open');
+    sidebarOverlay && sidebarOverlay.classList.add('show');
+    document.body.classList.add('sidebar-open');    // locks page scroll
+  }
+
+  function closeMobileSidebar() {
+    sidebar && sidebar.classList.remove('mobile-open');
+    sidebarOverlay && sidebarOverlay.classList.remove('show');
+    document.body.classList.remove('sidebar-open'); // restores page scroll
+  }
+
+  function toggleMobileSidebar() {
+    sidebar && sidebar.classList.contains('mobile-open')
+      ? closeMobileSidebar()
+      : openMobileSidebar();
+  }
+
   if (sidebarToggle) {
     sidebarToggle.addEventListener('click', function () {
       if (isMobile()) {
-        sidebar.classList.toggle('mobile-open');
-        sidebarOverlay.classList.toggle('show');
+        toggleMobileSidebar();
       } else {
         sidebar.classList.toggle('collapsed');
         localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
@@ -26,23 +43,29 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   if (mobileSidebarToggle) {
-    mobileSidebarToggle.addEventListener('click', function () {
-      sidebar.classList.toggle('mobile-open');
-      sidebarOverlay.classList.toggle('show');
-    });
+    mobileSidebarToggle.addEventListener('click', toggleMobileSidebar);
   }
 
   if (sidebarOverlay) {
-    sidebarOverlay.addEventListener('click', function () {
-      sidebar.classList.remove('mobile-open');
-      sidebarOverlay.classList.remove('show');
-    });
+    sidebarOverlay.addEventListener('click', closeMobileSidebar);
   }
 
-  // Restore sidebar state on desktop
+  // Close mobile sidebar on Escape key
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMobileSidebar();
+  });
+
+  // Restore sidebar collapsed state on desktop
   if (!isMobile() && localStorage.getItem('sidebarCollapsed') === 'true') {
     sidebar && sidebar.classList.add('collapsed');
   }
+
+  // On resize: if switching to desktop, remove mobile state
+  window.addEventListener('resize', function () {
+    if (!isMobile()) {
+      closeMobileSidebar();
+    }
+  });
 
 
   // ===== DataTables Auto-Init =====
