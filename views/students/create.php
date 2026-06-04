@@ -115,9 +115,20 @@
       <!-- Parent/Guardian Information -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-success text-white py-3">
-          <h6 class="mb-0"><i class="fas fa-users me-2"></i>Parent / Guardian Information</h6>
+          <div class="d-flex align-items-center justify-content-between">
+            <h6 class="mb-0"><i class="fas fa-users me-2"></i>Parent / Guardian Information</h6>
+            <span class="badge bg-white text-success" style="font-size:11px">
+              <i class="fas fa-key me-1"></i>Login account auto-created
+            </span>
+          </div>
         </div>
         <div class="card-body">
+          <div class="alert alert-success py-2 mb-3 small">
+            <i class="fas fa-info-circle me-1"></i>
+            A <strong>parent login account</strong> will be automatically created using this information.
+            The parent can log in at <code><?= BASE_URL ?>/login</code> with the generated credentials shown after saving.
+            If the parent already has an account (another sibling), it will be <strong>linked automatically</strong>.
+          </div>
           <div class="row g-3">
             <div class="col-md-3">
               <label class="form-label">Relation</label>
@@ -129,20 +140,39 @@
               </select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">First Name</label>
-              <input type="text" name="parent_first_name" class="form-control" value="<?= e(old('parent_first_name')) ?>">
+              <label class="form-label">First Name <span class="text-danger">*</span></label>
+              <input type="text" name="parent_first_name" class="form-control"
+                     value="<?= e(old('parent_first_name')) ?>"
+                     placeholder="Parent first name">
             </div>
             <div class="col-md-5">
               <label class="form-label">Last Name</label>
-              <input type="text" name="parent_last_name" class="form-control" value="<?= e(old('parent_last_name')) ?>">
+              <input type="text" name="parent_last_name" class="form-control"
+                     value="<?= e(old('parent_last_name')) ?>"
+                     placeholder="Parent last name">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Phone</label>
-              <input type="tel" name="parent_phone" class="form-control" value="<?= e(old('parent_phone')) ?>" placeholder="+251 9...">
+              <label class="form-label">Phone <span class="text-danger">*</span></label>
+              <input type="tel" name="parent_phone" class="form-control"
+                     value="<?= e(old('parent_phone')) ?>"
+                     placeholder="+251 9...">
+              <div class="form-text small">Required to create parent account</div>
             </div>
-            <div class="col-md-8">
-              <label class="form-label">Email</label>
-              <input type="email" name="parent_email" class="form-control" value="<?= e(old('parent_email')) ?>">
+            <div class="col-md-4">
+              <label class="form-label">
+                Email
+                <span class="text-muted small">(used as login)</span>
+              </label>
+              <input type="email" name="parent_email" class="form-control"
+                     value="<?= e(old('parent_email')) ?>"
+                     placeholder="parent@email.com">
+              <div class="form-text small">Leave blank to auto-generate a login email</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Occupation</label>
+              <input type="text" name="parent_occupation" class="form-control"
+                     value="<?= e(old('parent_occupation')) ?>"
+                     placeholder="e.g. Farmer, Teacher">
             </div>
           </div>
         </div>

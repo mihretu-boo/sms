@@ -17,7 +17,9 @@
       "Bash(git config *)",
       "Bash(git remote *)",
       "Bash(git add *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit -m ' *)",
+      "PowerShell(& \"c:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" -u root -e \"SHOW DATABASES;\" 2>&1)"
     ]
   }
 }

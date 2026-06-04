@@ -138,39 +138,130 @@ class StudentController extends Controller {
             if ($photo) $data['photo'] = $photo;
         }
 
-        // Create user account
-        $username = strtolower($data['first_name'] . '.' . $data['last_name'] . rand(100, 999));
-        $email    = $data['email'] ?: $username . '@sjassms.edu.et';
-        $password = password_hash('Student@123', PASSWORD_BCRYPT);
+        // ── Student login credentials ──────────────────────────────
+        $stuUsername = strtolower(
+            preg_replace('/[^a-z0-9]/', '', $data['first_name']) . '.' .
+            preg_replace('/[^a-z0-9]/', '', $data['last_name'])  . rand(100, 999)
+        );
+        // Make username unique
+        while ($db->prepare("SELECT 1 FROM users WHERE username=?")->execute([$stuUsername]) &&
+               $db->query("SELECT COUNT(*) FROM users WHERE username='$stuUsername'")->fetchColumn() > 0) {
+            $stuUsername = strtolower(
+                preg_replace('/[^a-z0-9]/', '', $data['first_name']) . '.' .
+                preg_replace('/[^a-z0-9]/', '', $data['last_name'])  . rand(100, 999)
+            );
+        }
+        $stuEmail    = $data['email'] ?: ($stuUsername . '@sjassms.edu.et');
+        $stuPassword = 'Student@123';
+
+        // ── Parent info ─────────────────────────────────────────────
+        $parentFirst = trim($this->post('parent_first_name', ''));
+        $parentLast  = trim($this->post('parent_last_name', ''));
+        $parentPhone = trim($this->post('parent_phone', ''));
+        $parentEmail = trim($this->post('parent_email', ''));
+        $parentRel   = $this->post('parent_relation', 'father');
+        $parentOccup = $this->post('parent_occupation', '');
+        $hasParent   = !empty($parentFirst) && !empty($parentPhone);
+
+        // ── Parent login credentials ────────────────────────────────
+        $parUsername    = null;
+        $parPassword    = null;
+        $parUserId      = null;
+        $parAccountNew  = false;
+
+        if ($hasParent) {
+            // If parent already has a user account (sibling scenario), reuse it
+            if ($parentEmail) {
+                $existStmt = $db->prepare("SELECT id, username FROM users WHERE email=? AND role='parent' LIMIT 1");
+                $existStmt->execute([$parentEmail]);
+                $existUser = $existStmt->fetch();
+                if ($existUser) {
+                    $parUserId   = $existUser['id'];
+                    $parUsername = $existUser['username'];
+                    $parPassword = '(existing account)';
+                }
+            }
+
+            // No existing account → create one
+            if (!$parUserId) {
+                $parPassword = 'Parent@123';
+                $parUsername = strtolower(
+                    preg_replace('/[^a-z0-9]/', '', $parentFirst) . '.' .
+                    preg_replace('/[^a-z0-9]/', '', $parentLast ?: $data['last_name']) . rand(100, 999)
+                );
+                // Ensure unique username
+                while ($db->query("SELECT COUNT(*) FROM users WHERE username='$parUsername'")->fetchColumn() > 0) {
+                    $parUsername = strtolower(
+                        preg_replace('/[^a-z0-9]/', '', $parentFirst) . '.' .
+                        preg_replace('/[^a-z0-9]/', '', $parentLast ?: $data['last_name']) . rand(100, 999)
+                    );
+                }
+                // Use parent email or generate one
+                $parEmail = $parentEmail ?: ($parUsername . '@sjassms.edu.et');
+                // Ensure email is unique
+                $emailChk = $db->prepare("SELECT COUNT(*) FROM users WHERE email=?");
+                $emailChk->execute([$parEmail]);
+                if ($emailChk->fetchColumn() > 0) {
+                    $parEmail = $parUsername . rand(10,99) . '@sjassms.edu.et';
+                }
+                $parAccountNew = true;
+            }
+        }
 
         try {
             $db->beginTransaction();
 
-            $uStmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?,?,?,'student')");
-            $uStmt->execute([$username, $email, $password]);
-            $userId = $db->lastInsertId();
-            $data['user_id'] = $userId;
+            // ── 1. Create student user account ──────────────────────
+            $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?,?,?,'student')")
+               ->execute([$stuUsername, $stuEmail, password_hash($stuPassword, PASSWORD_BCRYPT)]);
+            $stuUserId       = $db->lastInsertId();
+            $data['user_id'] = $stuUserId;
 
-            $cols   = implode(', ', array_keys($data));
+            // ── 2. Insert student ────────────────────────────────────
+            $cols         = implode(', ', array_keys($data));
             $placeholders = implode(', ', array_fill(0, count($data), '?'));
-            $stmt = $db->prepare("INSERT INTO students ($cols) VALUES ($placeholders)");
-            $stmt->execute(array_values($data));
+            $db->prepare("INSERT INTO students ($cols) VALUES ($placeholders)")->execute(array_values($data));
             $studentId = $db->lastInsertId();
 
-            // Insert parent info
-            $parentFirst = $this->post('parent_first_name', '');
-            $parentLast  = $this->post('parent_last_name', '');
-            $parentPhone = $this->post('parent_phone', '');
-            $parentRel   = $this->post('parent_relation', 'father');
-            if ($parentFirst && $parentPhone) {
-                $pStmt = $db->prepare("INSERT INTO parents (student_id, relation, first_name, last_name, phone, email) VALUES (?,?,?,?,?,?)");
-                $pStmt->execute([$studentId, $parentRel, $parentFirst, $parentLast, $parentPhone, $this->post('parent_email','')]);
+            // ── 3. Create / reuse parent user account ───────────────
+            if ($hasParent) {
+                if ($parAccountNew) {
+                    $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?,?,?,'parent')")
+                       ->execute([$parUsername, $parEmail, password_hash($parPassword, PASSWORD_BCRYPT)]);
+                    $parUserId = $db->lastInsertId();
+                }
+
+                // ── 4. Insert parent record linked to user + student ─
+                $db->prepare(
+                    "INSERT INTO parents
+                     (user_id, student_id, relation, first_name, last_name, phone, email, occupation, is_primary)
+                     VALUES (?,?,?,?,?,?,?,?,1)"
+                )->execute([
+                    $parUserId,
+                    $studentId,
+                    $parentRel,
+                    $parentFirst,
+                    $parentLast,
+                    $parentPhone,
+                    $parentEmail,
+                    $parentOccup,
+                ]);
             }
 
             $db->commit();
             Auth::audit('create', 'students', $studentId);
-            Flash::set('success', "Student <strong>$data[first_name] $data[last_name]</strong> added successfully. Student ID: <strong>$stuId</strong>. Login: <strong>$username</strong> / <strong>Student@123</strong>");
+
+            // ── Build success message with both accounts ─────────────
+            $msg  = "Student <strong>{$data['first_name']} {$data['last_name']}</strong> registered.";
+            $msg .= "<br><i class='fas fa-user-graduate me-1'></i> Student login: <code>$stuUsername</code> / <code>$stuPassword</code>";
+            if ($hasParent && $parUsername) {
+                $accountTag = $parAccountNew ? '(new account created)' : '(existing account linked)';
+                $msg .= "<br><i class='fas fa-users me-1'></i> Parent login: <code>$parUsername</code> / <code>" .
+                        ($parAccountNew ? $parPassword : 'existing password') . "</code> $accountTag";
+            }
+            Flash::set('success', $msg);
             $this->redirect('students/view/' . $studentId);
+
         } catch (Exception $e) {
             $db->rollBack();
             Flash::set('error', 'Failed to add student: ' . $e->getMessage());
@@ -408,6 +499,96 @@ class StudentController extends Controller {
             'title'   => 'Student ID Card',
             'student' => $student,
         ], 'print');
+    }
+
+    /**
+     * Create a parent login account for an existing student whose parent
+     * has no user account yet (e.g. students added before this feature).
+     */
+    public function createParentAccount(string $id): void {
+        $this->requireAuth(['super_admin','principal','registrar']);
+        $this->validateCsrf();
+
+        $db      = getDB();
+        $student = $this->findStudentOrFail($db, (int)$id);
+
+        // Get existing parent record
+        $pStmt = $db->prepare("SELECT * FROM parents WHERE student_id=? LIMIT 1");
+        $pStmt->execute([$id]);
+        $parent = $pStmt->fetch();
+
+        if (!$parent) {
+            Flash::set('error', 'No parent record found for this student. Add parent info first.');
+            $this->redirect('students/view/' . $id);
+            return;
+        }
+
+        if (!empty($parent['user_id'])) {
+            Flash::set('info', 'This parent already has a login account.');
+            $this->redirect('students/view/' . $id);
+            return;
+        }
+
+        // Generate parent username
+        $parFirst    = $parent['first_name'];
+        $parLast     = $parent['last_name'] ?: $student['last_name'];
+        $parEmail    = $parent['email'] ?: '';
+        $parPassword = 'Parent@123';
+
+        // Check if email already belongs to a parent user
+        if ($parEmail) {
+            $existStmt = $db->prepare("SELECT id, username FROM users WHERE email=? AND role='parent' LIMIT 1");
+            $existStmt->execute([$parEmail]);
+            $existUser = $existStmt->fetch();
+            if ($existUser) {
+                // Link existing parent user to this parent record
+                $db->prepare("UPDATE parents SET user_id=? WHERE id=?")->execute([$existUser['id'], $parent['id']]);
+                Flash::set('success', "Existing parent account <strong>{$existUser['username']}</strong> linked to this student.");
+                $this->redirect('students/view/' . $id);
+                return;
+            }
+        }
+
+        // Build unique username
+        $parUsername = strtolower(
+            preg_replace('/[^a-z0-9]/', '', $parFirst) . '.' .
+            preg_replace('/[^a-z0-9]/', '', $parLast) . rand(100, 999)
+        );
+        while ($db->query("SELECT COUNT(*) FROM users WHERE username='$parUsername'")->fetchColumn() > 0) {
+            $parUsername = strtolower(
+                preg_replace('/[^a-z0-9]/', '', $parFirst) . '.' .
+                preg_replace('/[^a-z0-9]/', '', $parLast) . rand(100, 999)
+            );
+        }
+
+        $parLoginEmail = $parEmail ?: ($parUsername . '@sjassms.edu.et');
+        // Ensure email unique
+        $emailChk = $db->prepare("SELECT COUNT(*) FROM users WHERE email=?");
+        $emailChk->execute([$parLoginEmail]);
+        if ($emailChk->fetchColumn() > 0) {
+            $parLoginEmail = $parUsername . rand(10,99) . '@sjassms.edu.et';
+        }
+
+        try {
+            $db->beginTransaction();
+            $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?,?,?,'parent')")
+               ->execute([$parUsername, $parLoginEmail, password_hash($parPassword, PASSWORD_BCRYPT)]);
+            $newUserId = $db->lastInsertId();
+
+            $db->prepare("UPDATE parents SET user_id=? WHERE id=?")->execute([$newUserId, $parent['id']]);
+            $db->commit();
+
+            Auth::audit('create_parent_account', 'students', (int)$id);
+            Flash::set('success',
+                "Parent account created. Login: <strong>$parUsername</strong> / <strong>$parPassword</strong>. " .
+                "Please give these credentials to the parent."
+            );
+        } catch (\Exception $e) {
+            $db->rollBack();
+            Flash::set('error', 'Failed to create parent account: ' . $e->getMessage());
+        }
+
+        $this->redirect('students/view/' . $id);
     }
 
     private function findStudentOrFail(PDO $db, int $id): array {

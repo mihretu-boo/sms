@@ -41,27 +41,78 @@
           <div class="mb-2"><i class="fas fa-envelope text-danger me-2"></i> <?= e($student['email'] ?? '—') ?></div>
           <div class="mb-2"><i class="fas fa-map-marker-alt text-secondary me-2"></i> <?= e($student['city'] ?? '—') ?></div>
         </div>
+        <!-- Student login -->
         <?php if ($user): ?>
         <hr>
         <div class="text-start small">
-          <div class="fw-semibold text-muted mb-1">Login Account</div>
-          <div><i class="fas fa-user me-1"></i><?= e($user['username']) ?></div>
-          <div><i class="fas fa-envelope me-1"></i><?= e($user['email']) ?></div>
+          <div class="fw-semibold text-muted mb-1"><i class="fas fa-user-graduate me-1 text-primary"></i>Student Login</div>
+          <div class="p-2 bg-light rounded">
+            <div><i class="fas fa-user me-1 text-muted"></i><strong><?= e($user['username']) ?></strong></div>
+            <div><i class="fas fa-envelope me-1 text-muted"></i><?= e($user['email']) ?></div>
+            <div class="text-muted mt-1" style="font-size:10px">URL: <?= BASE_URL ?>/login</div>
+          </div>
         </div>
         <?php endif; ?>
       </div>
     </div>
 
-    <!-- Parent Info -->
+    <!-- Parent Info + Login -->
     <?php if ($parent): ?>
+    <?php
+      // Load parent user account info
+      $parentUser = null;
+      if (!empty($parent['user_id'])) {
+          $puStmt = getDB()->prepare("SELECT username, email, status FROM users WHERE id=? LIMIT 1");
+          $puStmt->execute([$parent['user_id']]);
+          $parentUser = $puStmt->fetch();
+      }
+    ?>
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-success text-white py-2">
         <h6 class="mb-0 small"><i class="fas fa-users me-1"></i>Parent / Guardian</h6>
       </div>
       <div class="card-body small">
-        <div class="mb-1"><strong><?= e($parent['first_name'].' '.$parent['last_name']) ?></strong> (<?= ucfirst($parent['relation']) ?>)</div>
-        <div><i class="fas fa-phone me-1 text-muted"></i><?= e($parent['phone']) ?></div>
-        <?php if ($parent['email']): ?><div><i class="fas fa-envelope me-1 text-muted"></i><?= e($parent['email']) ?></div><?php endif; ?>
+        <div class="mb-2">
+          <strong><?= e($parent['first_name'].' '.$parent['last_name']) ?></strong>
+          <span class="badge bg-success ms-1"><?= ucfirst($parent['relation']) ?></span>
+        </div>
+        <div class="mb-1"><i class="fas fa-phone me-1 text-muted"></i><?= e($parent['phone']) ?></div>
+        <?php if ($parent['email']): ?>
+        <div class="mb-1"><i class="fas fa-envelope me-1 text-muted"></i><?= e($parent['email']) ?></div>
+        <?php endif; ?>
+        <?php if (!empty($parent['occupation'])): ?>
+        <div class="mb-1"><i class="fas fa-briefcase me-1 text-muted"></i><?= e($parent['occupation']) ?></div>
+        <?php endif; ?>
+
+        <!-- Parent login account -->
+        <hr class="my-2">
+        <?php if ($parentUser): ?>
+        <div class="fw-semibold text-muted mb-1"><i class="fas fa-key me-1 text-success"></i>Parent Login Account</div>
+        <div class="p-2 bg-success bg-opacity-10 rounded border border-success border-opacity-25">
+          <div><i class="fas fa-user me-1 text-muted"></i><strong><?= e($parentUser['username']) ?></strong></div>
+          <div><i class="fas fa-envelope me-1 text-muted"></i><?= e($parentUser['email']) ?></div>
+          <div class="d-flex justify-content-between align-items-center mt-1">
+            <?= getStatusBadge($parentUser['status']) ?>
+            <?php if (Auth::hasRole(['super_admin','principal','registrar'])): ?>
+            <form action="<?= url('settings/users/reset-password/'.$parent['user_id']) ?>" method="POST" class="d-inline"
+                  onsubmit="return confirm('Reset parent password to Admin@123?')">
+              <?= csrfField() ?>
+              <button class="btn btn-xs btn-outline-warning" style="font-size:10px">
+                <i class="fas fa-key me-1"></i>Reset Password
+              </button>
+            </form>
+            <?php endif; ?>
+          </div>
+        </div>
+        <?php else: ?>
+        <div class="alert alert-warning py-2 mb-0 small">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          No login account linked to this parent.
+          <?php if (Auth::hasRole(['super_admin','principal','registrar'])): ?>
+          <a href="<?= url('students/create-parent-account/'.$student['id']) ?>" class="alert-link">Create Account</a>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
       </div>
     </div>
     <?php endif; ?>

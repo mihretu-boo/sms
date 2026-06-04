@@ -37,7 +37,8 @@ class Router {
         $this->add('POST', 'students/promote',    'StudentController', 'promote');
         $this->add('GET',  'students/transfers',  'StudentController', 'transfers');
         $this->add('POST', 'students/transfers',  'StudentController', 'transfers');
-        $this->add('GET',  'students/id-card/{id}','StudentController','idCard');
+        $this->add('GET',  'students/id-card/{id}',              'StudentController', 'idCard');
+        $this->add('POST', 'students/create-parent-account/{id}','StudentController', 'createParentAccount');
 
         // Staff
         $this->add('GET',  'staff',               'StaffController', 'index');
