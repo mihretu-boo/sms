@@ -82,16 +82,24 @@ body {
 /* Sidebar Divider */
 .sidebar-divider { border-color: rgba(255,255,255,0.12); margin: 4px 12px; }
 
-/* Sidebar Nav — THE KEY FIX:
-   flex items default to min-height:auto, which prevents overflow from
-   ever triggering. min-height:0 allows the item to shrink below its
-   content size so overflow-y:auto actually works. */
+/* Sidebar Nav
+   Bootstrap .nav sets flex-wrap:wrap + flex-direction:column.
+   With a height-constrained flex parent (flex:1), items that exceed
+   the available height wrap into a SECOND COLUMN instead of scrolling.
+   Fix: force nowrap so items stack in one column and scroll. */
 .sidebar-nav {
+  flex-direction: column !important;   /* ensure column, not row */
+  flex-wrap: nowrap !important;        /* ← prevents the two-column bug */
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
-  min-height: 0;        /* ← critical: lets flex child shrink & scroll */
+  min-height: 0;                       /* lets flex child shrink & scroll */
   padding-bottom: 8px;
+}
+/* Each nav-item must fill full width so it never tempts wrapping */
+.sidebar-nav > .nav-item {
+  width: 100%;
+  flex-shrink: 0;
 }
 .sidebar-nav::-webkit-scrollbar { width: 3px; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 2px; }
@@ -118,8 +126,17 @@ body {
 .nav-arrow { margin-left: auto; font-size: 10px; transition: transform 0.2s; }
 .sidebar-link[aria-expanded="true"] .nav-arrow { transform: rotate(90deg); }
 
-/* Submenu */
-.sub-menu { padding-left: 36px !important; }
+/* Submenu — same fix applied: nowrap + full-width items */
+.sub-menu {
+  padding-left: 36px !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  width: 100%;
+}
+.sub-menu > .nav-item {
+  width: 100%;
+  flex-shrink: 0;
+}
 .sidebar-sublink {
   color: rgba(255,255,255,0.65) !important;
   font-size: 12px;
