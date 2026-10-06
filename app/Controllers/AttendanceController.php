@@ -109,7 +109,6 @@ class AttendanceController extends Controller {
         $ayId    = (int)getSetting('academic_year_id', 1);
         $classId = $this->get('class_id', '');
         $month   = $this->get('month', date('Y-m'));
-        $type    = $this->get('type', 'monthly');
 
         [$year, $mon] = explode('-', $month . '-01');
 
@@ -123,7 +122,7 @@ class AttendanceController extends Controller {
             $students = $stuStmt->fetchAll();
 
             foreach ($students as &$stu) {
-                $attStmt = $db->prepare("SELECT date, status, remarks FROM student_attendance WHERE student_id = ? AND YEAR(date) = ? AND MONTH(date) = ? ORDER BY date");
+                $attStmt = $db->prepare("SELECT date, status FROM student_attendance WHERE student_id = ? AND YEAR(date) = ? AND MONTH(date) = ? ORDER BY date");
                 $attStmt->execute([$stu['id'], $year, $mon]);
                 $stu['attendance'] = $attStmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
@@ -135,7 +134,7 @@ class AttendanceController extends Controller {
         }
 
         // Days in month
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int)$mon, (int)$year);
+        $daysInMonth = (int)date('t', mktime(0, 0, 0, (int)$mon, 1, (int)$year));
         $dates = [];
         for ($d = 1; $d <= $daysInMonth; $d++) {
             $dt = sprintf('%04d-%02d-%02d', $year, $mon, $d);

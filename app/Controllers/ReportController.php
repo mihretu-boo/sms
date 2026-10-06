@@ -60,7 +60,7 @@ class ReportController extends Controller {
         $classStats->execute([$year, $mon, $ayId]);
 
         $dailyStats = [];
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int)$mon, (int)$year);
+        $daysInMonth = (int)date('t', mktime(0, 0, 0, (int)$mon, 1, (int)$year));
         for ($d = 1; $d <= $daysInMonth; $d++) {
             $dt = sprintf('%04d-%02d-%02d', $year, $mon, $d);
             $dow = (int)date('N', strtotime($dt));
@@ -202,5 +202,131 @@ class ReportController extends Controller {
 
         Flash::set('error', 'Export type not supported.');
         $this->redirect('reports');
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Excel Roster  GET /reports/excel-roster[?grade=9&kard=1]
+    // ──────────────────────────────────────────────────────────
+    public function excelRoster(): void {
+        $this->requireAuth(['super_admin','principal','vice_principal','registrar','dept_head']);
+
+        $db       = getDB();
+        $ayId     = (int)getSetting('academic_year_id', 1);
+        $grade    = $this->get('grade', 'all');   // 9|10|11|12|all
+        $withKard = (bool)$this->get('kard', 0);  // 1 = include per-student report cards
+
+        // ── Fetch students from DB ───────────────────────────
+        $grades = ($grade === 'all') ? [9,10,11,12] : [(int)$grade];
+        $students = [];
+
+        foreach ($grades as $g) {
+            $stmt = $db->prepare("
+                SELECT s.first_name, s.last_name,
+                       UPPER(LEFT(COALESCE(s.gender,'M'), 1))      AS sex,
+                       COALESCE(TIMESTAMPDIFF(YEAR, s.dob, CURDATE()), '') AS age,
+                       COALESCE(c.section, 'A')                    AS section,
+                       UPPER(COALESCE(c.stream, s.stream, 'GP'))   AS stream
+                FROM students s
+                JOIN classes c ON s.class_id = c.id
+                WHERE c.grade = ? AND c.academic_year_id = ? AND s.status = 'active'
+                ORDER BY c.section, s.last_name, s.first_name
+            ");
+            $stmt->execute([$g, $ayId]);
+            $rows = $stmt->fetchAll();
+
+            $students[$g] = array_map(fn($r) => [
+                $r['first_name'], $r['last_name'],
+                $r['sex'], $r['age'], $r['section'],
+                in_array($r['stream'], ['NS','SS']) ? $r['stream'] : 'GP',
+            ], $rows);
+        }
+
+        // ── School/year config ───────────────────────────────
+        $ay = $db->prepare("SELECT name FROM academic_years WHERE id = ?");
+        $ay->execute([$ayId]);
+        $ayRow = $ay->fetch() ?: [];
+
+        $config = [
+            'school'    => getSetting('school_name', 'Shalaka Jatani Ali Secondary School'),
+            'school_om' => 'Mana Barumsaa Sadarkaa 2ffaa Shalaka Jatani Ali',
+            'principal' => getSetting('principal_name', 'Ato [Principal Name]'),
+            'ay_ec'     => getSetting('ec_year', '2018'),
+            'ay_gc'     => $ayRow['name'] ?? '2025/26',
+            'pass_mark' => (int)getSetting('pass_mark', 50),
+        ];
+
+        // ── Write temp JSON for Python ───────────────────────
+        $tmpDir   = sys_get_temp_dir();
+        $uid      = uniqid('sjass_', true);
+        $dataFile = $tmpDir . DIRECTORY_SEPARATOR . $uid . '_data.json';
+        $outFile  = $tmpDir . DIRECTORY_SEPARATOR . $uid . '_roster.xlsx';
+
+        file_put_contents($dataFile, json_encode([
+            'config'   => $config,
+            'students' => $students,
+        ]));
+
+        // ── Run Python generator ─────────────────────────────
+        $script  = ROOT . '/scripts/generate_sjass.py';
+        $gradeArg= ($grade === 'all') ? 'all' : (string)(int)$grade;
+        $kardArg = $withKard ? '--kard' : '';
+
+        $cmd = 'python3 ' . escapeshellarg($script)
+             . ' --data '   . escapeshellarg($dataFile)
+             . ' --output ' . escapeshellarg($outFile)
+             . ' --grade '  . escapeshellarg($gradeArg)
+             . ' ' . $kardArg
+             . ' 2>&1';
+
+        exec($cmd, $cmdOut, $exitCode);
+        @unlink($dataFile);
+
+        if ($exitCode !== 0 || !file_exists($outFile)) {
+            http_response_code(500);
+            echo '<pre style="font-family:monospace;color:#c0392b;padding:20px">'
+               . '<strong>Excel generation failed</strong><br><br>'
+               . htmlspecialchars(implode("\n", $cmdOut))
+               . '</pre>';
+            exit;
+        }
+
+        // ── Stream file to browser ───────────────────────────
+        $label    = ($grade === 'all') ? 'All-Grades' : "Grade-{$grade}";
+        $filename = "SJASS_Roster_{$label}_" . date('Y-m-d') . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($outFile));
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        readfile($outFile);
+        @unlink($outFile);
+        exit;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Excel export UI  GET /reports/excel
+    // ──────────────────────────────────────────────────────────
+    public function excel(): void {
+        $this->requireAuth(['super_admin','principal','vice_principal','registrar','dept_head']);
+
+        $db   = getDB();
+        $ayId = (int)getSetting('academic_year_id', 1);
+
+        // Count students per grade for the UI
+        $stmt = $db->prepare("
+            SELECT c.grade, COUNT(s.id) as n
+            FROM students s JOIN classes c ON s.class_id=c.id
+            WHERE c.academic_year_id=? AND s.status='active'
+            GROUP BY c.grade ORDER BY c.grade
+        ");
+        $stmt->execute([$ayId]);
+        $counts = [];
+        foreach ($stmt->fetchAll() as $r) $counts[$r['grade']] = (int)$r['n'];
+
+        $this->render('reports/excel', [
+            'title'  => 'Excel Export — Roster & Report Cards',
+            'counts' => $counts,
+        ]);
     }
 }

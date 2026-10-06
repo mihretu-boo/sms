@@ -94,6 +94,43 @@
       </div>
     </div>
   </div>
+
+  <!-- Excel Roster & Report Cards -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100 report-card"
+         style="border-top:4px solid #1A5E20 !important">
+      <div class="card-body text-center py-5">
+        <div class="report-icon rounded-3 mx-auto mb-3"
+             style="background:rgba(26,94,32,.12);color:#1A5E20">
+          <i class="fas fa-file-excel fa-2x"></i>
+        </div>
+        <h6 class="fw-bold mb-2">Excel Roster &amp; Report Cards</h6>
+        <p class="text-muted small mb-3">
+          Generate the official SJASS roster workbook with live student data,
+          bilingual Afan Oromo/English labels, and optional printable Kard sheets.
+        </p>
+        <a href="<?= url('reports/excel') ?>"
+           class="btn w-100 text-white fw-bold"
+           style="background:#1A5E20">
+          <i class="fas fa-file-excel me-1"></i>
+          Open Excel Export
+        </a>
+        <div class="mt-2 d-flex gap-1 justify-content-center flex-wrap">
+          <a href="<?= url('reports/excel-roster?grade=9') ?>"
+             class="btn btn-sm btn-outline-secondary">Gr 9</a>
+          <a href="<?= url('reports/excel-roster?grade=10') ?>"
+             class="btn btn-sm btn-outline-secondary">Gr 10</a>
+          <a href="<?= url('reports/excel-roster?grade=11') ?>"
+             class="btn btn-sm btn-outline-secondary">Gr 11</a>
+          <a href="<?= url('reports/excel-roster?grade=12') ?>"
+             class="btn btn-sm btn-outline-secondary">Gr 12</a>
+          <a href="<?= url('reports/excel-roster?grade=all') ?>"
+             class="btn btn-sm btn-success">All</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <style>

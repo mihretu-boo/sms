@@ -22,9 +22,13 @@ require_once ROOT . '/app/Core/Controller.php';
 require_once ROOT . '/app/Core/Auth.php';
 require_once ROOT . '/app/Core/Flash.php';
 require_once ROOT . '/app/Core/Helpers.php';
+require_once ROOT . '/app/Core/Lang.php';
 require_once ROOT . '/app/Core/Mailer.php';
 require_once ROOT . '/app/Core/MailerProviders.php';
 require_once ROOT . '/app/Core/RateLimiter.php';
+
+// Initialise language (reads/writes $_SESSION['site_lang'])
+Lang::init();
 
 // Check session timeout
 Auth::checkSession();

@@ -213,8 +213,16 @@ body {
 .bg-orange { background-color: #D97706 !important; }
 
 /* ===== Cards ===== */
-.card { border-radius: 12px !important; }
-.card-header { border-radius: 12px 12px 0 0 !important; }
+.card {
+  border-radius: 14px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04) !important;
+  border: 1px solid rgba(0,0,0,0.04) !important;
+}
+.card-header {
+  border-radius: 14px 14px 0 0 !important;
+  padding: 14px 20px !important;
+}
+.card-body { padding: 18px 20px; }
 
 /* ===== Tables ===== */
 .table > thead > tr > th {
@@ -325,3 +333,121 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ===== Dashboard: Gradient KPI Cards ===== */
+.kpi-card {
+  border-radius: 16px !important;
+  padding: 20px 18px !important;
+  position: relative;
+  overflow: hidden;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.14) !important;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+  display: block;
+}
+.kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.22) !important; }
+
+.kpi-body { display: flex; align-items: flex-start; gap: 14px; position: relative; z-index: 1; }
+.kpi-icon-wrap {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.22);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 18px;
+}
+.kpi-info { flex: 1; min-width: 0; }
+.kpi-info .kpi-value { font-size: 1.45rem; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-info .kpi-label { font-size: 12px; opacity: 0.85; margin-top: 3px; font-weight: 500; }
+.kpi-info .kpi-sub   { font-size: 11px; opacity: 0.7;  margin-top: 2px; }
+.kpi-info .kpi-trend { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+.kpi-decor { pointer-events: none; }
+.kpi-decor::before, .kpi-decor::after {
+  content: ''; position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,0.08); pointer-events: none;
+}
+.kpi-decor::before { width: 90px; height: 90px; top: -24px; right: -24px; }
+.kpi-decor::after  { width: 56px; height: 56px; bottom: -18px; right: 22px; }
+
+.kpi-primary   { background: linear-gradient(135deg, #1565C0 0%, #1E88E5 100%); }
+.kpi-success   { background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%); }
+.kpi-warning   { background: linear-gradient(135deg, #E65100 0%, #FB8C00 100%); }
+.kpi-danger    { background: linear-gradient(135deg, #B71C1C 0%, #E53935 100%); }
+.kpi-info      { background: linear-gradient(135deg, #006064 0%, #00ACC1 100%); }
+.kpi-secondary { background: linear-gradient(135deg, #37474F 0%, #607D8B 100%); }
+
+/* ===== Dashboard: Activity Timeline ===== */
+.activity-timeline {
+  position: relative;
+  padding-left: 32px;
+}
+.activity-timeline::before {
+  content: ''; position: absolute;
+  left: 18px; top: 16px; bottom: 16px;
+  width: 2px;
+  background: linear-gradient(to bottom, #1565C0 0%, rgba(21,101,192,0.08) 100%);
+  border-radius: 1px;
+}
+.timeline-item {
+  position: relative;
+  padding: 9px 0 9px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.timeline-item:last-child { border-bottom: none; }
+.timeline-dot {
+  position: absolute; left: -8px; top: 14px;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid #fff; flex-shrink: 0;
+}
+.timeline-text { font-size: 13px; font-weight: 500; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timeline-time { font-size: 11px; color: #999; margin-top: 2px; }
+.timeline-icon { font-size: 9px; margin-right: 4px; opacity: 0.7; }
+
+/* ===== Dashboard: Section Headers ===== */
+.dash-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #9e9e9e; margin-bottom: 10px; margin-top: 4px;
+}
+
+/* ===== Dashboard: Modern KPI Cards ===== */
+.dash-kpi-card {
+  background: #fff;
+  border-radius: 14px !important;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.dash-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.10) !important;
+}
+.dash-kpi-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ===== Dashboard: Schedule & Activity Dots ===== */
+.sched-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+  margin-top: 5px;
+}
+.act-icon-sm {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ===== Dashboard: Utility ===== */
+.btn-xs {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+}
+.min-w-0 { min-width: 0; }

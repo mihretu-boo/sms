@@ -52,9 +52,8 @@ class Mailer {
         string $plainBody = '',
         array  $replyTo   = []
     ): bool {
-        if (empty($this->password)) {
-            // SMTP password not set — log the email to file and return true (dev mode)
-            // Admin must set smtp_pass in Settings → Email & SMTP
+        // Only fall back to file-log when auth is required but password is missing
+        if ($this->auth && empty($this->password) && !empty($this->username)) {
             $this->logFallback($to, $subject, $htmlBody,
                 'SMTP password not set. Go to Settings → Email & SMTP to enter the password for ' . $this->username);
             return true;

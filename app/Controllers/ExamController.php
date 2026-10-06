@@ -297,7 +297,7 @@ class ExamController extends Controller {
         $attendance = $attStmt->fetch();
 
         // Rank
-        $rankStmt = $db->prepare("SELECT COUNT(*) + 1 as rank FROM students s WHERE s.class_id = ? AND s.id != ? AND (SELECT AVG(m2.grade_point) FROM marks m2 JOIN exams e2 ON m2.exam_id = e2.id WHERE m2.student_id = s.id AND e2.semester_id = ?) > ?");
+        $rankStmt = $db->prepare("SELECT COUNT(*) + 1 FROM students s WHERE s.class_id = ? AND s.id != ? AND (SELECT AVG(m2.grade_point) FROM marks m2 JOIN exams e2 ON m2.exam_id = e2.id WHERE m2.student_id = s.id AND e2.semester_id = ?) > ?");
         $rankStmt->execute([$student['class_id'], $id, $semId, $overallGpa]);
         $rank = (int)$rankStmt->fetchColumn();
 

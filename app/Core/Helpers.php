@@ -218,6 +218,24 @@ function photoUrl(string|null $photo, string $placeholder = 'user'): string {
     return ASSETS_URL . '/images/placeholders/' . $placeholder . '.png';
 }
 
+function getWebsiteSetting(string $key, string $default = ''): string {
+    static $ws = null;
+    if ($ws === null) {
+        try {
+            $db  = getDB();
+            $stmt = $db->query("SELECT setting_key, setting_value FROM website_settings");
+            $ws  = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (Exception $e) {
+            $ws = [];
+        }
+    }
+    return $ws[$key] ?? $default;
+}
+
+function websiteUrl(string $path = ''): string {
+    return BASE_URL . '/site' . ($path ? '/' . ltrim($path, '/') : '');
+}
+
 function paginationLinks(array $pager, string $baseUrl = ''): string {
     if ($pager['total_pages'] <= 1) return '';
 

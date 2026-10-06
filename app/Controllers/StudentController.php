@@ -490,15 +490,133 @@ class StudentController extends Controller {
         ]);
     }
 
+    // ── ID Card Management ─────────────────────────────────────────────
+
+    public function idCards(): void {
+        $this->requireAuth(['super_admin','principal','vice_principal','registrar']);
+        $db = getDB();
+
+        $grade   = $this->get('grade', '');
+        $section = $this->get('section', '');
+        $stream  = $this->get('stream', '');
+        $search  = $this->get('search', '');
+
+        $where  = ['s.status = "active"'];
+        $params = [];
+        if ($grade)   { $where[] = 'c.grade = ?';   $params[] = $grade; }
+        if ($section) { $where[] = 'c.section = ?';  $params[] = $section; }
+        if ($stream)  { $where[] = 's.stream = ?';   $params[] = $stream; }
+        if ($search) {
+            $where[] = '(s.first_name LIKE ? OR s.last_name LIKE ? OR s.student_id LIKE ?)';
+            $like = "%$search%";
+            array_push($params, $like, $like, $like);
+        }
+
+        $whereStr = implode(' AND ', $where);
+        $stmt = $db->prepare("
+            SELECT s.*, c.grade, c.section, s.stream,
+                   ay.name AS academic_year,
+                   u.username AS homeroom_teacher
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN academic_years ay ON ay.status = 'active'
+            LEFT JOIN users u ON c.class_teacher_id = u.id
+            WHERE $whereStr
+            ORDER BY c.grade, c.section, s.first_name
+        ");
+        $stmt->execute($params);
+        $students = $stmt->fetchAll();
+
+        // Deduplicate if multiple active academic years
+        $seen = [];
+        $students = array_filter($students, function($s) use (&$seen) {
+            if (isset($seen[$s['id']])) return false;
+            $seen[$s['id']] = true;
+            return true;
+        });
+
+        $classes = $db->query("SELECT DISTINCT grade, section FROM classes ORDER BY grade, section")->fetchAll();
+
+        $this->render('students/id-cards', [
+            'title'     => 'ID Card Management',
+            'students'  => array_values($students),
+            'classes'   => $classes,
+            'grade'     => $grade,
+            'section'   => $section,
+            'stream'    => $stream,
+            'search'    => $search,
+            'principal' => getWebsiteSetting('principal_name', getSetting('school_name','Principal')),
+            'pTitle'    => getWebsiteSetting('principal_title_en','School Principal'),
+        ]);
+    }
+
+    public function idCardBulkPrint(): void {
+        $this->requireAuth(['super_admin','principal','vice_principal','registrar']);
+        $db = getDB();
+
+        $ids = array_filter(array_map('intval', explode(',', $this->get('ids',''))));
+        if (empty($ids)) {
+            Flash::set('error', 'No students selected.');
+            $this->redirect('students/id-cards');
+            return;
+        }
+        $ph  = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $db->prepare("
+            SELECT s.*, c.grade, c.section, s.stream,
+                   ay.name AS academic_year,
+                   u.username AS homeroom_teacher
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN academic_years ay ON ay.status = 'active'
+            LEFT JOIN users u ON c.class_teacher_id = u.id
+            WHERE s.id IN ($ph)
+            ORDER BY c.grade, c.section, s.first_name
+        ");
+        $stmt->execute($ids);
+        $students = $stmt->fetchAll();
+
+        // Deduplicate
+        $seen = []; $students = array_values(array_filter($students, function($s) use (&$seen) {
+            if (isset($seen[$s['id']])) return false; $seen[$s['id']] = true; return true;
+        }));
+
+        $this->render('students/id-card-bulk', [
+            'title'     => 'Print ID Cards',
+            'students'  => $students,
+            'principal' => getWebsiteSetting('principal_name', ''),
+            'pTitle'    => getWebsiteSetting('principal_title_en', 'School Principal'),
+        ], 'print');
+    }
+
     public function idCard(string $id): void {
         $this->requireAuth();
-        $db      = getDB();
-        $student = $this->findStudentOrFail($db, (int)$id);
+        $db = getDB();
+
+        $stmt = $db->prepare("
+            SELECT s.*, c.grade, c.section, s.stream,
+                   ay.name AS academic_year,
+                   u.username AS homeroom_teacher
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN academic_years ay ON ay.status = 'active'
+            LEFT JOIN users u ON c.class_teacher_id = u.id
+            WHERE s.id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([(int)$id]);
+        $student = $stmt->fetch();
+        if (!$student) {
+            Flash::set('error', 'Student not found.');
+            $this->redirect('students/id-cards');
+            return;
+        }
 
         $this->render('students/id-card', [
-            'title'   => 'Student ID Card',
-            'student' => $student,
-        ], 'print');
+            'title'     => 'Student ID Card — ' . $student['first_name'] . ' ' . $student['last_name'],
+            'student'   => $student,
+            'principal' => getWebsiteSetting('principal_name', ''),
+            'pTitle'    => getWebsiteSetting('principal_title_en', 'School Principal'),
+        ]);
     }
 
     /**

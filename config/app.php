@@ -21,7 +21,7 @@ define('SESSION_LIFETIME', 7200); // 2 hours
 define('SESSION_NAME', 'SJASSMS_SESSION');
 
 // Upload Config
-define('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB
+define('MAX_FILE_SIZE', 15 * 1024 * 1024); // 15MB
 define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 define('ALLOWED_DOC_TYPES', ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation']);
 

@@ -1,0 +1,45 @@
+services:
+  web:
+    build: .
+    container_name: studentmanagement_app
+    ports:
+      - "8082:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_NAME: sjassms
+      DB_USER: root
+      DB_PASS: root
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: studentmanagement_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sjassms
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: studentmanagement_mail
+    restart: always
+    ports:
+      - "1025:1025"   # SMTP — msmtp + custom Mailer point here
+      - "8025:8025"   # Web UI  →  http://localhost:8025
+
+volumes:
+  mysql_data:

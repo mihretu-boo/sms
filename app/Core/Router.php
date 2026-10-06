@@ -37,8 +37,10 @@ class Router {
         $this->add('POST', 'students/promote',    'StudentController', 'promote');
         $this->add('GET',  'students/transfers',  'StudentController', 'transfers');
         $this->add('POST', 'students/transfers',  'StudentController', 'transfers');
-        $this->add('GET',  'students/id-card/{id}',              'StudentController', 'idCard');
-        $this->add('POST', 'students/create-parent-account/{id}','StudentController', 'createParentAccount');
+        $this->add('GET',  'students/id-cards',                   'StudentController', 'idCards');
+        $this->add('GET',  'students/id-cards/bulk-print',        'StudentController', 'idCardBulkPrint');
+        $this->add('GET',  'students/id-card/{id}',               'StudentController', 'idCard');
+        $this->add('POST', 'students/create-parent-account/{id}', 'StudentController', 'createParentAccount');
 
         // Staff
         $this->add('GET',  'staff',               'StaffController', 'index');
@@ -178,13 +180,15 @@ class Router {
         $this->add('POST', 'clubs/enroll',        'ClubController', 'enroll');
 
         // Reports
-        $this->add('GET',  'reports',             'ReportController', 'index');
-        $this->add('GET',  'reports/academic',    'ReportController', 'academic');
-        $this->add('GET',  'reports/attendance',  'ReportController', 'attendance');
-        $this->add('GET',  'reports/financial',   'ReportController', 'financial');
-        $this->add('GET',  'reports/staff',       'ReportController', 'staff');
-        $this->add('GET',  'reports/annual',      'ReportController', 'annual');
-        $this->add('GET',  'reports/export',      'ReportController', 'export');
+        $this->add('GET',  'reports',                  'ReportController', 'index');
+        $this->add('GET',  'reports/academic',         'ReportController', 'academic');
+        $this->add('GET',  'reports/attendance',       'ReportController', 'attendance');
+        $this->add('GET',  'reports/financial',        'ReportController', 'financial');
+        $this->add('GET',  'reports/staff',            'ReportController', 'staff');
+        $this->add('GET',  'reports/annual',           'ReportController', 'annual');
+        $this->add('GET',  'reports/export',           'ReportController', 'export');
+        $this->add('GET',  'reports/excel',            'ReportController', 'excel');
+        $this->add('GET',  'reports/excel-roster',     'ReportController', 'excelRoster');
 
         // Settings
         $this->add('GET',  'settings',            'SettingsController', 'index');
@@ -225,9 +229,55 @@ class Router {
         $this->add('GET',  'exam-repository/reports',               'ExamRepositoryController', 'reports');
 
         // Settings — Email & SMTP
-        $this->add('POST', 'settings/smtp-test',          'SettingsController', 'smtpTest');
-        $this->add('POST', 'settings/send-test-email',    'SettingsController', 'sendTestEmail');
-        $this->add('POST', 'settings/switch-email-provider','SettingsController','switchEmailProvider');
+        $this->add('POST', 'settings/smtp-test',             'SettingsController', 'smtpTest');
+        $this->add('POST', 'settings/send-test-email',       'SettingsController', 'sendTestEmail');
+        $this->add('POST', 'settings/switch-email-provider', 'SettingsController', 'switchEmailProvider');
+        $this->add('POST', 'settings/save-email-templates',  'SettingsController', 'saveEmailTemplates');
+        $this->add('POST', 'settings/compose-send',          'SettingsController', 'composeSend');
+        $this->add('GET',  'settings/email-logs',            'SettingsController', 'emailLogs');
+        $this->add('GET',  'settings/preview-email/{key}',   'SettingsController', 'previewEmail');
+
+        // ── Public Website ──────────────────────────────────────────
+        $this->add('GET',  'site',              'PublicController', 'home');
+        $this->add('GET',  'site/about',        'PublicController', 'about');
+        $this->add('GET',  'site/news',         'PublicController', 'news');
+        $this->add('GET',  'site/news/{id}',    'PublicController', 'newsDetail');
+        $this->add('GET',  'site/gallery',      'PublicController', 'gallery');
+        $this->add('GET',  'site/contact',      'PublicController', 'contact');
+        $this->add('POST', 'site/contact',      'PublicController', 'submitContact');
+        $this->add('GET',  'site/lang/{lang}',  'PublicController', 'switchLang');
+
+        // ── Website Admin CMS ────────────────────────────────────────
+        $this->add('GET',  'website',                               'WebsiteAdminController', 'dashboard');
+        $this->add('GET',  'website/pages',                         'WebsiteAdminController', 'pages');
+        $this->add('GET',  'website/pages/edit/{slug}',             'WebsiteAdminController', 'editPage');
+        $this->add('POST', 'website/pages/save/{slug}',             'WebsiteAdminController', 'savePage');
+        $this->add('GET',  'website/news',                          'WebsiteAdminController', 'news');
+        $this->add('GET',  'website/news/create',                   'WebsiteAdminController', 'createNews');
+        $this->add('POST', 'website/news/create',                   'WebsiteAdminController', 'storeNews');
+        $this->add('GET',  'website/news/edit/{id}',                'WebsiteAdminController', 'editNews');
+        $this->add('POST', 'website/news/edit/{id}',                'WebsiteAdminController', 'updateNews');
+        $this->add('POST', 'website/news/delete/{id}',              'WebsiteAdminController', 'deleteNews');
+        $this->add('GET',  'website/gallery',                       'WebsiteAdminController', 'gallery');
+        $this->add('POST', 'website/gallery/upload',                'WebsiteAdminController', 'uploadGallery');
+        $this->add('POST', 'website/gallery/delete/{id}',           'WebsiteAdminController', 'deleteGallery');
+        $this->add('POST', 'website/gallery/categories',            'WebsiteAdminController', 'galleryCategories');
+        $this->add('GET',  'website/sliders',                       'WebsiteAdminController', 'sliders');
+        $this->add('POST', 'website/sliders/upload',                'WebsiteAdminController', 'uploadSlider');
+        $this->add('GET',  'website/sliders/edit/{id}',             'WebsiteAdminController', 'editSlider');
+        $this->add('POST', 'website/sliders/edit/{id}',             'WebsiteAdminController', 'updateSlider');
+        $this->add('POST', 'website/sliders/toggle/{id}',           'WebsiteAdminController', 'toggleSlider');
+        $this->add('POST', 'website/sliders/delete/{id}',           'WebsiteAdminController', 'deleteSlider');
+        $this->add('GET',  'website/contact-messages',              'WebsiteAdminController', 'contactMessages');
+        $this->add('POST', 'website/contact-messages/delete/{id}',  'WebsiteAdminController', 'deleteMessage');
+        $this->add('GET',  'website/settings',                      'WebsiteAdminController', 'siteSettings');
+        $this->add('POST', 'website/settings/save',                 'WebsiteAdminController', 'saveSiteSettings');
+        $this->add('GET',  'website/principal',                     'WebsiteAdminController', 'principalPage');
+        $this->add('POST', 'website/principal/save',                'WebsiteAdminController', 'savePrincipal');
+        $this->add('GET',  'website/home-content',                  'WebsiteAdminController', 'homeContent');
+        $this->add('POST', 'website/home-content/save',             'WebsiteAdminController', 'saveHomeContent');
+        $this->add('GET',  'website/about-content',                 'WebsiteAdminController', 'aboutContent');
+        $this->add('POST', 'website/about-content/save',            'WebsiteAdminController', 'saveAboutContent');
 
         // API endpoints
         $this->add('GET',  'api/students',         'ApiController', 'students');

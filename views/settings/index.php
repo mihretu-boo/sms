@@ -308,6 +308,328 @@ $tabGroups = [
   </div>
 </div>
 
+<!-- ===== EMAIL TYPES CONFIGURATION ===== -->
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+    <div>
+      <h6 class="mb-0 fw-bold"><i class="fas fa-envelope-open-text text-primary me-2"></i>Email Types</h6>
+      <small class="text-muted">Enable / disable each automated email and customise its subject line</small>
+    </div>
+    <button type="submit" form="emailTypesForm" class="btn btn-sm btn-primary">
+      <i class="fas fa-save me-1"></i>Save Types
+    </button>
+  </div>
+  <form id="emailTypesForm" action="<?= url('settings/save-email-templates') ?>" method="POST">
+    <?= csrfField() ?>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:200px">Email Type</th>
+            <th>Subject Template</th>
+            <th class="text-center" style="width:90px">Enabled</th>
+            <th style="width:110px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+          $typeIcons = [
+            'welcome_student'    => ['icon'=>'user-graduate', 'color'=>'primary'],
+            'welcome_staff'      => ['icon'=>'chalkboard-teacher','color'=>'info'],
+            'parent_credentials' => ['icon'=>'users',         'color'=>'success'],
+            'fee_reminder'       => ['icon'=>'money-bill-wave','color'=>'danger'],
+            'attendance_alert'   => ['icon'=>'calendar-times','color'=>'warning'],
+            'exam_results'       => ['icon'=>'chart-bar',     'color'=>'purple'],
+            'announcement'       => ['icon'=>'bullhorn',      'color'=>'secondary'],
+            'password_reset'     => ['icon'=>'key',           'color'=>'dark'],
+            'password_changed'   => ['icon'=>'lock',          'color'=>'dark'],
+          ];
+          if (!empty($emailTypes)):
+            foreach ($emailTypes as $et):
+              $meta = $typeIcons[$et['template_key']] ?? ['icon'=>'envelope','color'=>'secondary'];
+          ?>
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:34px;height:34px;background:var(--bs-<?= $meta['color'] === 'purple' ? 'indigo' : $meta['color'] ?>-bg-subtle,#f0f4ff)">
+                  <i class="fas fa-<?= $meta['icon'] ?> text-<?= $meta['color'] === 'purple' ? 'primary' : $meta['color'] ?>" style="font-size:.8rem"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold small"><?= e($et['name']) ?></div>
+                  <div class="text-muted" style="font-size:11px"><?= e($et['description'] ?? '') ?></div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <input type="text"
+                     name="subjects[<?= e($et['template_key']) ?>]"
+                     class="form-control form-control-sm"
+                     value="<?= e($et['subject_template']) ?>"
+                     placeholder="Subject line…">
+              <div class="form-text" style="font-size:10px">
+                Tokens: <code>{school_name}</code> <code>{name}</code> <code>{student_name}</code>
+              </div>
+            </td>
+            <td class="text-center">
+              <div class="form-check form-switch d-flex justify-content-center mb-0">
+                <input class="form-check-input" type="checkbox"
+                       name="enabled[<?= e($et['template_key']) ?>]"
+                       value="1"
+                       <?= $et['enabled'] ? 'checked' : '' ?>>
+              </div>
+            </td>
+            <td class="text-end pe-3">
+              <a href="<?= url('settings/preview-email/' . $et['template_key']) ?>"
+                 target="_blank"
+                 class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-eye me-1"></i>Preview
+              </a>
+            </td>
+          </tr>
+          <?php endforeach; else: ?>
+          <tr><td colspan="4" class="text-center text-muted py-4">
+            <i class="fas fa-info-circle me-1"></i>
+            Run the email migration to load email types:
+            <code class="small">docker exec -i studentmanagement_db mysql -uroot -proot sjassms &lt; database/email_migration.sql</code>
+          </td></tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </form>
+</div>
+
+<!-- ===== COMPOSE & SEND EMAIL ===== -->
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-header bg-white py-3">
+    <h6 class="mb-0 fw-bold"><i class="fas fa-paper-plane text-success me-2"></i>Compose & Send Email</h6>
+    <small class="text-muted">Send a custom email to individuals or groups</small>
+  </div>
+  <div class="card-body">
+    <?php if ($cm = \Flash::get('compose_success')): ?>
+    <div class="alert alert-success alert-dismissible py-2">
+      <i class="fas fa-check-circle me-2"></i><?= $cm ?>
+      <button class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <?php endif; ?>
+    <?php if ($ce = \Flash::get('compose_error')): ?>
+    <div class="alert alert-danger alert-dismissible py-2">
+      <i class="fas fa-exclamation-circle me-2"></i><?= e($ce) ?>
+      <button class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <?php endif; ?>
+
+    <form action="<?= url('settings/compose-send') ?>" method="POST" id="composeForm">
+      <?= csrfField() ?>
+      <div class="row g-3">
+
+        <!-- Recipient Type -->
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">To</label>
+          <select name="to_type" id="toType" class="form-select" onchange="toggleCustomTo(this.value)">
+            <option value="custom">Custom Email Address</option>
+            <optgroup label="Role Groups">
+              <option value="role:student">All Students</option>
+              <option value="role:parent">All Parents</option>
+              <option value="role:teacher">All Teachers</option>
+              <option value="role:staff">All Staff (non-student)</option>
+              <option value="role:super_admin">All Admins</option>
+            </optgroup>
+            <optgroup label="Everyone">
+              <option value="role:all">Everyone (all users with email)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Custom Email -->
+        <div class="col-md-7" id="customEmailWrap">
+          <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+          <input type="email" name="custom_email" class="form-control"
+                 placeholder="recipient@example.com">
+        </div>
+
+        <!-- Role count hint -->
+        <div class="col-12 d-none" id="roleCountHint">
+          <div class="alert alert-info py-2 mb-0 small">
+            <i class="fas fa-users me-1"></i>
+            This will send to <strong id="roleCountText">all users</strong> in the selected group with a valid email address.
+          </div>
+        </div>
+
+        <!-- Subject -->
+        <div class="col-12">
+          <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
+          <input type="text" name="subject" class="form-control"
+                 placeholder="Email subject…" required>
+        </div>
+
+        <!-- Body -->
+        <div class="col-12">
+          <label class="form-label fw-semibold">Message Body</label>
+          <div class="mb-1">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="wrapText('bold')"><b>B</b></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="wrapText('italic')"><i>I</i></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="wrapText('underline')"><u>U</u></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertHr()">― HR</button>
+            <small class="text-muted ms-2">Basic HTML is supported</small>
+          </div>
+          <textarea name="body" id="composeBody" class="form-control font-monospace"
+                    rows="10" placeholder="Write your message here…" required
+                    style="font-size:13px;resize:vertical"></textarea>
+          <div class="d-flex justify-content-between mt-1">
+            <div class="form-text">HTML tags like &lt;b&gt;, &lt;a href=""&gt;, &lt;br&gt; are supported.</div>
+            <button type="button" class="btn btn-outline-info btn-sm" onclick="previewEmail()">
+              <i class="fas fa-eye me-1"></i>Preview
+            </button>
+          </div>
+        </div>
+
+        <!-- Signature toggle -->
+        <div class="col-12">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="add_signature" id="addSig" value="1" checked>
+            <label class="form-check-label small" for="addSig">
+              Append school signature and footer
+            </label>
+          </div>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <button type="submit" class="btn btn-success px-4">
+            <i class="fas fa-paper-plane me-2"></i>Send Email
+          </button>
+          <button type="reset" class="btn btn-outline-secondary">
+            <i class="fas fa-times me-1"></i>Clear
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Email Preview Modal -->
+<div class="modal fade" id="emailPreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-eye me-2"></i>Email Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe id="previewFrame" style="width:100%;height:500px;border:none"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EMAIL SEND LOG ===== -->
+<?php if (!empty($emailLogs)): ?>
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+    <h6 class="mb-0 fw-bold"><i class="fas fa-history text-muted me-2"></i>Recent Sent Emails</h6>
+    <a href="<?= url('settings/email-logs') ?>" class="btn btn-sm btn-outline-secondary">
+      View All <i class="fas fa-arrow-right ms-1"></i>
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>To</th>
+          <th>Subject</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Sent</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($emailLogs as $log): ?>
+        <tr>
+          <td class="small"><?= e($log['to_email']) ?></td>
+          <td class="small"><?= e(mb_strimwidth($log['subject'],0,55,'…')) ?></td>
+          <td>
+            <?php if ($log['template_key']): ?>
+            <span class="badge bg-light text-secondary border" style="font-size:10px">
+              <?= e(str_replace('_',' ',$log['template_key'])) ?>
+            </span>
+            <?php endif; ?>
+          </td>
+          <td>
+            <?php if ($log['status'] === 'sent'): ?>
+            <span class="badge bg-success-subtle text-success border-0" style="font-size:11px">sent</span>
+            <?php elseif ($log['status'] === 'failed'): ?>
+            <span class="badge bg-danger-subtle text-danger border-0" title="<?= e($log['error_message']) ?>" style="font-size:11px">failed</span>
+            <?php else: ?>
+            <span class="badge bg-warning-subtle text-warning border-0" style="font-size:11px">queued</span>
+            <?php endif; ?>
+          </td>
+          <td class="small text-muted">
+            <?= date('d M H:i', strtotime($log['created_at'])) ?>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+<?php endif; ?>
+
+<script>
+function toggleCustomTo(val) {
+  var isCustom  = val === 'custom';
+  var customWrap = document.getElementById('customEmailWrap');
+  var hintWrap   = document.getElementById('roleCountHint');
+  var roleText   = document.getElementById('roleCountText');
+  customWrap.classList.toggle('d-none', !isCustom);
+  hintWrap.classList.toggle('d-none', isCustom);
+  customWrap.querySelector('input').required = isCustom;
+
+  var labels = {
+    'role:student':'all students','role:parent':'all parents','role:teacher':'all teachers',
+    'role:staff':'all staff','role:super_admin':'all admins','role:all':'all users'
+  };
+  if (!isCustom && labels[val]) roleText.textContent = labels[val];
+}
+
+function wrapText(style) {
+  var ta = document.getElementById('composeBody');
+  var s  = ta.selectionStart, e = ta.selectionEnd;
+  var sel = ta.value.substring(s, e);
+  var tags = {bold:['<b>','</b>'],italic:['<i>','</i>'],underline:['<u>','</u>']};
+  if (!tags[style]) return;
+  var wrapped = tags[style][0] + sel + tags[style][1];
+  ta.setRangeText(wrapped, s, e, 'end');
+}
+
+function insertHr() {
+  var ta = document.getElementById('composeBody');
+  var s  = ta.selectionStart;
+  ta.setRangeText('<hr>', s, s, 'end');
+}
+
+function previewEmail() {
+  var subject = document.querySelector('[name="subject"]').value || '(No Subject)';
+  var body    = document.getElementById('composeBody').value;
+  var frame   = document.getElementById('previewFrame');
+  var modal   = new bootstrap.Modal(document.getElementById('emailPreviewModal'));
+
+  var schoolName = '<?= e(getSetting('school_name','School')) ?>';
+  var html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>body{font-family:'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#333}
+    h2{color:#1B3A6B;font-size:18px;border-bottom:2px solid #E8A020;padding-bottom:8px}
+    .footer{margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center}
+    </style></head><body>
+    <h2>${subject}</h2>
+    <div style="font-size:14px;line-height:1.8">${body}</div>
+    <div class="footer">${schoolName} — This is a preview only</div>
+    </body></html>`;
+
+  frame.srcdoc = html;
+  modal.show();
+}
+</script>
+
 <?php else: ?>
 <!-- ===== OTHER TABS ===== -->
 <form action="<?= url('settings') ?>" method="POST" id="settingsForm">

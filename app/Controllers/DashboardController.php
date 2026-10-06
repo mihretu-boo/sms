@@ -184,13 +184,30 @@ class DashboardController extends Controller {
         // Live activity feed
         $activity = $this->buildActivityFeed($db);
 
+        // Today's class schedule (timetable)
+        $day = date('l');
+        $todaySchedule = [];
+        try {
+            $r = $db->query(
+                "SELECT tt.period, tt.start_time, tt.end_time, sub.name as subject_name,
+                        c.grade, c.section, CONCAT(st.first_name,' ',st.last_name) as teacher
+                 FROM timetable tt
+                 JOIN subjects sub ON tt.subject_id = sub.id
+                 JOIN classes  c   ON tt.class_id   = c.id
+                 JOIN staff    st  ON tt.teacher_id  = st.id
+                 WHERE tt.day = '$day' AND tt.semester_id = $semId
+                 ORDER BY tt.period ASC LIMIT 5"
+            );
+            if ($r) $todaySchedule = $r->fetchAll();
+        } catch (\Exception $e) { $todaySchedule = []; }
+
         return compact(
             'totalStudents','totalStaff','totalClasses',
             'attRate','attTrend','monthIncome','incomeTrend',
             'pendingFees','openIncidents','overdueBooks',
             'attChart','finChart','gradeChart','staffChart',
             'recentPayments','recentStudents',
-            'pendingExams','activity','upcomingExams'
+            'pendingExams','activity','upcomingExams','todaySchedule'
         );
     }
 
@@ -276,7 +293,7 @@ class DashboardController extends Controller {
              WHERE cs.teacher_id = $staffId AND cs.semester_id = $semId
                AND sa.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
              GROUP BY DATE(sa.date)
-             ORDER BY sa.date"
+             ORDER BY DATE(sa.date)"
         )->fetchAll();
 
         return compact('myClasses','todayTT','pendingGrading','attToday','recentMarks','upcomingDue','monthAtt');

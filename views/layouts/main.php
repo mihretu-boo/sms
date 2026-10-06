@@ -182,6 +182,17 @@
                   ['label'=>'Audit Logs','url'=>'settings/audit'],
                   ['label'=>'Backup','url'=>'settings/backup'],
               ]],
+              ['icon'=>'globe','label'=>'Website CMS','url'=>'website','children'=>[
+                  ['label'=>'CMS Dashboard',       'url'=>'website'],
+                  ['label'=>'Home Page Content',   'url'=>'website/home-content'],
+                  ['label'=>"Principal's Message", 'url'=>'website/principal'],
+                  ['label'=>'About Page Content',  'url'=>'website/about-content'],
+                  ['label'=>'News / Articles',     'url'=>'website/news'],
+                  ['label'=>'Gallery',             'url'=>'website/gallery'],
+                  ['label'=>'Hero Sliders',        'url'=>'website/sliders'],
+                  ['label'=>'Contact Messages',    'url'=>'website/contact-messages'],
+                  ['label'=>'Contact & Social',    'url'=>'website/settings'],
+              ]],
           ]
       };
 
@@ -247,6 +258,10 @@
         </div>
 
         <div class="d-flex align-items-center gap-2 ms-auto">
+          <!-- Public Site link -->
+          <a href="<?= websiteUrl() ?>" target="_blank" class="btn btn-sm btn-outline-success d-none d-md-inline-flex align-items-center gap-1" title="View Public Site">
+            <i class="fas fa-globe"></i><span class="d-none d-lg-inline">Public Site</span>
+          </a>
           <!-- Search -->
           <div class="topbar-search d-none d-md-block">
             <div class="input-group input-group-sm">

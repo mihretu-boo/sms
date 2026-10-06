@@ -15,7 +15,25 @@ class SettingsController extends Controller {
         foreach ($all as $s) {
             $grouped[$s['group_name']][] = $s;
         }
-        $this->render('settings/index', ['title' => 'Settings', 'groups' => $grouped]);
+
+        // Email types (graceful if table not yet created)
+        $emailTypes = [];
+        try {
+            $emailTypes = $db->query("SELECT * FROM email_templates ORDER BY id")->fetchAll();
+        } catch (\Exception $e) { /* migration not run yet */ }
+
+        // Last 10 sent emails
+        $emailLogs = [];
+        try {
+            $emailLogs = $db->query("SELECT * FROM email_logs ORDER BY created_at DESC LIMIT 10")->fetchAll();
+        } catch (\Exception $e) { /* migration not run yet */ }
+
+        $this->render('settings/index', [
+            'title'      => 'Settings',
+            'groups'     => $grouped,
+            'emailTypes' => $emailTypes,
+            'emailLogs'  => $emailLogs,
+        ]);
     }
 
     public function save(): void {
@@ -273,6 +291,289 @@ class SettingsController extends Controller {
         $this->requireAuth(['super_admin']);
         $result = Mailer::test();
         $this->json($result);
+    }
+
+    // ===== EMAIL TEMPLATES (enable/disable + subject) =====
+
+    public function saveEmailTemplates(): void {
+        $this->requireAuth(['super_admin']);
+        $this->validateCsrf();
+
+        $subjects = $_POST['subjects'] ?? [];
+        $enabled  = $_POST['enabled']  ?? [];
+
+        try {
+            $db   = getDB();
+            $keys = $db->query("SELECT template_key FROM email_templates")->fetchAll(PDO::FETCH_COLUMN);
+
+            $stmt = $db->prepare(
+                "UPDATE email_templates SET subject_template=?, enabled=? WHERE template_key=?"
+            );
+            foreach ($keys as $key) {
+                $stmt->execute([
+                    $subjects[$key] ?? '',
+                    isset($enabled[$key]) ? 1 : 0,
+                    $key,
+                ]);
+            }
+            Auth::audit('update_email_templates', 'settings');
+            Flash::set('success', 'Email types saved.');
+        } catch (\Exception $e) {
+            Flash::set('error', 'Failed: ' . $e->getMessage());
+        }
+        $this->redirect('settings?tab=email');
+    }
+
+    // ===== COMPOSE & SEND =====
+
+    public function composeSend(): void {
+        $this->requireAuth(['super_admin','principal']);
+        $this->validateCsrf();
+
+        $toType      = $this->post('to_type', 'custom');
+        $customEmail = trim($this->post('custom_email', ''));
+        $subject     = trim($this->post('subject', ''));
+        $body        = $this->post('body', '');
+        $addSig      = (bool)$this->post('add_signature', '0');
+
+        if (empty($subject)) {
+            Flash::set('compose_error', 'Subject is required.');
+            $this->redirect('settings?tab=email');
+            return;
+        }
+
+        $schoolName    = getSetting('school_name', 'SJASSMS');
+        $schoolAddress = getSetting('school_address', '');
+        $fromEmail     = getSetting('smtp_from_email', getSetting('smtp_user', ''));
+
+        // Build HTML body
+        $htmlBody = $this->buildComposeHtml($subject, $body, $addSig, $schoolName, $schoolAddress, $fromEmail);
+
+        // Resolve recipients
+        $recipients = [];
+
+        if ($toType === 'custom') {
+            if (!filter_var($customEmail, FILTER_VALIDATE_EMAIL)) {
+                Flash::set('compose_error', 'Please enter a valid email address.');
+                $this->redirect('settings?tab=email');
+                return;
+            }
+            $recipients[] = ['email' => $customEmail, 'name' => ''];
+        } else {
+            $db = getDB();
+            if ($toType === 'role:all') {
+                $rows = $db->query(
+                    "SELECT email, username FROM users WHERE email <> '' AND status='active'"
+                )->fetchAll();
+            } elseif (str_starts_with($toType, 'role:')) {
+                $role = substr($toType, 5);
+                if ($role === 'staff') {
+                    $rows = $db->prepare(
+                        "SELECT email, username FROM users WHERE role NOT IN ('student','parent') AND email <> '' AND status='active'"
+                    );
+                    $rows->execute();
+                    $rows = $rows->fetchAll();
+                } else {
+                    $rows = $db->prepare(
+                        "SELECT email, username FROM users WHERE role=? AND email <> '' AND status='active'"
+                    );
+                    $rows->execute([$role]);
+                    $rows = $rows->fetchAll();
+                }
+            } else {
+                Flash::set('compose_error', 'Invalid recipient type.');
+                $this->redirect('settings?tab=email');
+                return;
+            }
+            foreach ($rows as $r) {
+                if (!empty($r['email'])) {
+                    $recipients[] = ['email' => $r['email'], 'name' => $r['username'] ?? ''];
+                }
+            }
+        }
+
+        if (empty($recipients)) {
+            Flash::set('compose_error', 'No recipients found for the selected group.');
+            $this->redirect('settings?tab=email');
+            return;
+        }
+
+        $db      = getDB();
+        $mailer  = new Mailer();
+        $sent    = 0;
+        $failed  = 0;
+        $userId  = Auth::id();
+
+        $logStmt = null;
+        try {
+            $logStmt = $db->prepare(
+                "INSERT INTO email_logs (to_email, to_name, subject, template_key, body_html, status, error_message, sent_by)
+                 VALUES (?,?,?,'compose',?,?,?,?)"
+            );
+        } catch (\Exception $e) { /* email_logs table may not exist */ }
+
+        foreach ($recipients as $rec) {
+            $status = 'sent';
+            $errMsg = '';
+            try {
+                $mailer->send($rec['email'], $subject, $htmlBody);
+                $sent++;
+            } catch (\Exception $e) {
+                $failed++;
+                $status = 'failed';
+                $errMsg = $e->getMessage();
+            }
+            if ($logStmt) {
+                try {
+                    $logStmt->execute([
+                        $rec['email'], $rec['name'], $subject,
+                        $htmlBody, $status, $errMsg, $userId,
+                    ]);
+                } catch (\Exception $e) { /* ignore log failure */ }
+            }
+        }
+
+        Auth::audit('compose_send_email', 'settings', null, "Sent to $sent recipients");
+
+        if ($failed === 0) {
+            Flash::set('compose_success', "✅ Email sent to <strong>$sent</strong> recipient" . ($sent !== 1 ? 's' : '') . ".");
+        } else {
+            Flash::set('compose_error', "Sent: $sent | Failed: $failed. Check SMTP settings.");
+        }
+        $this->redirect('settings?tab=email');
+    }
+
+    private function buildComposeHtml(
+        string $subject,
+        string $body,
+        bool   $addSig,
+        string $schoolName,
+        string $schoolAddress,
+        string $fromEmail
+    ): string {
+        $footerHtml = $addSig ? "
+          <div style='margin-top:32px;padding-top:16px;border-top:1px solid #EEE;font-size:12px;color:#9E9E9E;text-align:center'>
+            <p style='margin:4px 0'><strong style='color:#666'>{$schoolName}</strong></p>
+            <p style='margin:4px 0'>{$schoolAddress}</p>
+            <p style='margin:8px 0 0;color:#BDBDBD'>This is an automated message &mdash; please do not reply directly to this email.
+              &copy; " . date('Y') . " {$schoolName}</p>
+          </div>" : '';
+
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head>
+          <body style='margin:0;padding:0;background:#F0F4F8;font-family:Segoe UI,Arial,sans-serif'>
+          <div style='max-width:600px;margin:0 auto;padding:24px 16px'>
+            <div style='background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden'>
+              <div style='background:linear-gradient(135deg,#1B3A6B,#2A5298);padding:28px 40px;text-align:center'>
+                <h1 style='color:#fff;margin:0;font-size:20px;font-weight:700'>{$schoolName}</h1>
+                <p style='color:rgba(255,255,255,.75);margin:4px 0 0;font-size:13px'>" . date('d M Y') . "</p>
+              </div>
+              <div style='padding:32px 40px'>
+                <h2 style='color:#1B3A6B;font-size:18px;font-weight:700;margin:0 0 20px'>{$subject}</h2>
+                <div style='font-size:14px;color:#444;line-height:1.8'>{$body}</div>
+                {$footerHtml}
+              </div>
+            </div>
+          </div></body></html>";
+    }
+
+    // ===== EMAIL LOG (full list) =====
+
+    public function emailLogs(): void {
+        $this->requireAuth(['super_admin','principal']);
+        $db    = getDB();
+        $page  = max(1, (int)$this->get('page', 1));
+        $limit = 50;
+        $offset= ($page - 1) * $limit;
+
+        try {
+            $total = (int)$db->query("SELECT COUNT(*) FROM email_logs")->fetchColumn();
+            $logs  = $db->prepare(
+                "SELECT el.*, u.username as sent_by_name FROM email_logs el
+                 LEFT JOIN users u ON el.sent_by = u.id
+                 ORDER BY el.created_at DESC LIMIT ? OFFSET ?"
+            );
+            $logs->execute([$limit, $offset]);
+            $logs = $logs->fetchAll();
+        } catch (\Exception $e) {
+            $total = 0;
+            $logs  = [];
+        }
+
+        $this->render('settings/email-logs', [
+            'title'  => 'Email Logs',
+            'logs'   => $logs,
+            'total'  => $total,
+            'page'   => $page,
+            'pages'  => ceil($total / $limit),
+        ]);
+    }
+
+    // ===== EMAIL PREVIEW =====
+
+    public function previewEmail(string $key): void {
+        $this->requireAuth(['super_admin','principal']);
+
+        $schoolName    = getSetting('school_name','SJASSMS');
+        $schoolAddress = getSetting('school_address','');
+        $adminEmail    = getSetting('school_email','admin@school.edu.et');
+        $loginUrl      = url('login');
+
+        $previewVars = [
+            // universal
+            'schoolName'    => $schoolName,
+            'schoolAddress' => $schoolAddress,
+            'adminEmail'    => $adminEmail,
+            'loginUrl'      => $loginUrl,
+            'schoolPhone'   => getSetting('school_phone',''),
+            // student/staff
+            'studentName'   => 'Alemu Bekele',
+            'staffName'     => 'Tigist Haile',
+            'parentName'    => 'Bekele Alemu',
+            'recipientName' => 'Parent / Student',
+            'username'      => 'alemu.bekele',
+            'password'      => 'Temp@1234',
+            'role'          => 'Teacher',
+            'department'    => 'Mathematics',
+            'grade'         => 'Grade 10A',
+            'studentId'     => 'STU-2025-001',
+            // fee
+            'feeType'       => 'Annual Tuition Fee',
+            'amount'        => '4500',
+            'currency'      => 'ETB',
+            'dueDate'       => date('d M Y', strtotime('+7 days')),
+            'academicTerm'  => 'Semester 1, 2024–25',
+            // attendance
+            'presentDays'   => '42',
+            'absentDays'    => '18',
+            'attendanceRate'=> '70',
+            'threshold'     => '75',
+            // exam
+            'examName'      => 'Mid-Term Examination',
+            'gpa'           => '3.25',
+            'subjects'      => [
+                ['subject'=>'Mathematics',    'score'=>'85','total'=>'100','grade'=>'A-','remarks'=>'Excellent'],
+                ['subject'=>'English',        'score'=>'78','total'=>'100','grade'=>'B+','remarks'=>'Good'],
+                ['subject'=>'Physics',        'score'=>'72','total'=>'100','grade'=>'B', 'remarks'=>'Above Average'],
+                ['subject'=>'Amharic',        'score'=>'90','total'=>'100','grade'=>'A', 'remarks'=>'Outstanding'],
+            ],
+            // announcement
+            'title'         => 'School Reopening Notice',
+            'body'          => "Dear Parents and Students,\n\nWe are pleased to announce that the new semester begins on Monday, 23 September 2024.\nAll students are required to report by 7:30 AM in full school uniform.\n\nThank you for your continued support.",
+            'category'      => 'Notice',
+            'publishedAt'   => date('d M Y'),
+            'audience'      => 'All Students & Parents',
+        ];
+
+        try {
+            $html = Mailer::renderTemplate($key, $previewVars);
+            header('Content-Type: text/html; charset=UTF-8');
+            echo $html;
+            exit;
+        } catch (\Exception $e) {
+            http_response_code(404);
+            echo '<p>Template not found: ' . e($key) . '</p>';
+            exit;
+        }
     }
 
     public function sendTestEmail(): void {
