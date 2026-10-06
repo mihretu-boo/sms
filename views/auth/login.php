@@ -43,21 +43,54 @@
   </button>
 </form>
 
-<div class="text-center mt-3">
-  <a href="<?= url('forgot-password') ?>" class="text-muted small">
-    <i class="fas fa-question-circle me-1"></i>Forgot your password?
-  </a>
-</div>
 
-<div class="mt-4 p-3 bg-light rounded border">
-  <p class="text-muted small mb-2 fw-semibold"><i class="fas fa-info-circle me-1"></i>Demo Accounts (password: <code>password</code>)</p>
-  <div class="row g-1 text-center" style="font-size:11px">
-    <div class="col-6"><span class="badge bg-danger w-100">admin</span></div>
-    <div class="col-6"><span class="badge bg-primary w-100">principal</span></div>
-    <div class="col-6"><span class="badge bg-success w-100">teacher1</span></div>
-    <div class="col-6"><span class="badge bg-info w-100">student1</span></div>
-    <div class="col-6"><span class="badge bg-warning text-dark w-100">parent1</span></div>
-    <div class="col-6"><span class="badge bg-secondary w-100">finance</span></div>
+<div class="mt-4 pt-2">
+  <div class="demo-box p-3 rounded-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="small fw-bold text-dark">
+        <i class="fas fa-bolt text-warning me-1"></i>Demo Accounts
+      </span>
+      <span class="badge bg-white text-muted border shadow-xs py-1 px-2" style="font-size:10px; font-weight:500;">
+        password: <code class="text-primary fw-bold">password</code>
+      </span>
+    </div>
+    <div class="row g-1 text-center">
+      <div class="col-4">
+        <button type="button" class="btn btn-sm w-100 demo-btn demo-btn-admin" data-user="admin" title="Click to fill">
+          <i class="fas fa-user-shield me-1"></i>admin
+        </button>
+      </div>
+      <div class="col-4">
+        <button type="button" class="btn btn-sm w-100 demo-btn demo-btn-principal" data-user="principal" title="Click to fill">
+          <i class="fas fa-user-tie me-1"></i>principal
+        </button>
+      </div>
+      <div class="col-4">
+        <button type="button" class="btn btn-sm w-100 demo-btn demo-btn-teacher" data-user="teacher1" title="Click to fill">
+          <i class="fas fa-chalkboard-teacher me-1"></i>teacher
+        </button>
+      </div>
+      <div class="col-4">
+        <button type="button" class="btn btn-sm w-100 demo-btn demo-btn-student" data-user="student1" title="Click to fill">
+          <i class="fas fa-user-graduate me-1"></i>student
+        </button>
+      </div>
+      <div class="col-4">
+        <button type="button" class="btn btn-sm w-100 demo-btn demo-btn-parent" data-user="parent1" title="Click to fill">
+          <i class="fas fa-user-friends me-1"></i>parent
+        </button>
+      </div>
+      <div class="col-4">
+        <button type="button" class="btn btn-sm w-100 demo-btn demo-btn-finance" data-user="finance" title="Click to fill">
+          <i class="fas fa-coins me-1"></i>finance
+        </button>
+      </div>
+    </div>
+    <div class="text-center mt-2">
+      <small class="text-muted" style="font-size:11px;">
+        <i class="fas fa-hand-pointer me-1 text-primary"></i>Click any role to auto-fill
+      </small>
+    </div>
   </div>
 </div>
 
@@ -72,5 +105,23 @@ document.getElementById('togglePassword').addEventListener('click', function() {
     input.type = 'password';
     icon.classList.replace('fa-eye-slash','fa-eye');
   }
+});
+
+// Demo accounts auto-fill
+document.querySelectorAll('.demo-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var user = this.getAttribute('data-user');
+    var credentialInput = document.querySelector('input[name="credential"]');
+    var passwordInput = document.getElementById('passwordInput');
+    credentialInput.value = user;
+    passwordInput.value = 'password';
+
+    // Visual feedback
+    this.classList.add('demo-btn-active');
+    setTimeout(() => this.classList.remove('demo-btn-active'), 300);
+
+    // Focus submit button
+    document.querySelector('button[type="submit"]').focus();
+  });
 });
 </script>

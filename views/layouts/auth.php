@@ -17,17 +17,17 @@
 <div class="auth-wrapper">
   <div class="auth-container">
     <!-- Logo / Header -->
-    <div class="auth-header text-center mb-4">
-      <div class="auth-logo-wrap mx-auto mb-3">
-        <i class="fas fa-graduation-cap fa-3x text-white"></i>
+    <div class="auth-header text-center mb-3">
+      <div class="auth-logo-wrap mx-auto mb-2">
+        <i class="fas fa-graduation-cap fa-2x text-white"></i>
       </div>
-      <h4 class="text-white fw-bold mb-1"><?= e(getSetting('school_name_short','SJASSMS')) ?></h4>
+      <h4 class="text-white fw-bold mb-1 fs-5"><?= e(getSetting('school_name_short','SJASSMS')) ?></h4>
       <p class="text-white-50 small mb-0"><?= e(getSetting('school_name','Shalaka Jatan Ali Secondary School')) ?></p>
     </div>
 
     <!-- Card -->
     <div class="auth-card card shadow-lg border-0">
-      <div class="card-body p-4 p-md-5">
+      <div class="card-body p-4">
 
         <!-- Flash messages -->
         <?= Flash::render() ?>

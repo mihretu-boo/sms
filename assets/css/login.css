@@ -10,11 +10,13 @@ body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
 .auth-body {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
   background: linear-gradient(135deg, #0D47A1 0%, #1565C0 35%, #1976D2 60%, #2E7D32 100%);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Animated background */
@@ -23,6 +25,8 @@ body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
   inset: 0;
   background: linear-gradient(135deg, #0D47A1 0%, #1565C0 35%, #1976D2 60%, #2E7D32 100%);
   z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .auth-bg::before {
@@ -56,7 +60,7 @@ body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
   z-index: 1;
   width: 100%;
   max-width: 440px;
-  padding: 20px;
+  padding: 30px 16px;
   margin: auto;
 }
 
@@ -72,48 +76,159 @@ body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
 
 /* Card */
 .auth-card {
-  border-radius: 16px !important;
-  backdrop-filter: blur(10px);
-  background: rgba(255,255,255,0.98) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.4) inset !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Inputs */
 .auth-card .form-control {
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
-  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  padding: 11px 14px;
   font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #f8fafc;
+  transition: all 0.2s ease;
 }
 
 .auth-card .form-control:focus {
+  background-color: #fff;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(21,101,192,0.12);
+  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.15);
 }
 
 .auth-card .input-group-text {
-  background: #f8f9fa;
-  border-radius: 8px 0 0 8px;
-  border-color: #dee2e6;
+  background: #f8fafc;
+  border-radius: 10px 0 0 10px;
+  border-color: #e2e8f0;
+  color: #64748b;
 }
 
 /* Button */
 .auth-card .btn-primary {
-  background: linear-gradient(135deg, var(--primary), #1976D2);
+  background: linear-gradient(135deg, #1565C0 0%, #1976D2 100%);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(21, 101, 192, 0.25);
+  transition: all 0.25s ease;
 }
 
 .auth-card .btn-primary:hover {
+  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(21,101,192,0.3);
+  box-shadow: 0 8px 22px rgba(21, 101, 192, 0.35);
+}
+
+.auth-card .btn-primary:active {
+  transform: translateY(0);
 }
 
 /* Alerts */
-.auth-card .alert { border-radius: 8px; font-size: 13px; }
+.auth-card .alert { border-radius: 10px; font-size: 13px; }
 .auth-card .alert-danger { background: #fff5f5; border: 1px solid #fecaca; color: #dc2626; }
 .auth-card .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; }
+
+/* Demo Accounts Box & Buttons */
+.demo-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.demo-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 4px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+}
+
+.demo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.demo-btn-active {
+  transform: scale(0.95) !important;
+}
+
+.demo-btn-admin {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+.demo-btn-admin:hover {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+.demo-btn-principal {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+.demo-btn-principal:hover {
+  background: #c7d2fe;
+  color: #312e81;
+}
+
+.demo-btn-teacher {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.demo-btn-teacher:hover {
+  background: #bbf7d0;
+  color: #14532d;
+}
+
+.demo-btn-student {
+  background: #e0f2fe;
+  color: #075985;
+  border-color: #bae6fd;
+}
+.demo-btn-student:hover {
+  background: #bae6fd;
+  color: #0369a1;
+}
+
+.demo-btn-parent {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.demo-btn-parent:hover {
+  background: #fde68a;
+  color: #78350f;
+}
+
+.demo-btn-finance {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border-color: #e9d5ff;
+}
+.demo-btn-finance:hover {
+  background: #e9d5ff;
+  color: #581c87;
+}
+
+/* ===== Hidden Scrollbar (Fully scrollable without visible bar) ===== */
+html, body, .auth-body {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.auth-body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
